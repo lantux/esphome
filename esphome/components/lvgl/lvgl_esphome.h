@@ -120,7 +120,7 @@ class LvglComponent : public PollingComponent {
  public:
   LvglComponent(std::vector<display::Display *> displays, float buffer_frac, bool full_refresh, int draw_rounding,
                 bool resume_on_input);
-  static void static_flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p);
+  static void static_flush_cb(lv_display_t *disp_drv, const lv_area_t *area, lv_color_t *color_p);
 
   float get_setup_priority() const override { return setup_priority::PROCESSOR; }
   void setup() override;
@@ -159,6 +159,7 @@ class LvglComponent : public PollingComponent {
   void show_next_page(lv_scr_load_anim_t anim, uint32_t time);
   void show_prev_page(lv_scr_load_anim_t anim, uint32_t time);
   void set_page_wrap(bool wrap) { this->page_wrap_ = wrap; }
+  void set_big_endian(bool big_endian) { this->big_endian_ = big_endian; }
   void set_focus_mark(lv_group_t *group) { this->focus_marks_[group] = lv_group_get_focused(group); }
   void restore_focus_mark(lv_group_t *group) {
     auto *mark = this->focus_marks_[group];
@@ -174,7 +175,7 @@ class LvglComponent : public PollingComponent {
  protected:
   void write_random_();
   void draw_buffer_(const lv_area_t *area, lv_color_t *ptr);
-  void flush_cb_(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p);
+  void flush_cb_(lv_display_t *disp_drv, const lv_area_t *area, lv_color_t *color_p);
 
   std::vector<display::Display *> displays_{};
   size_t buffer_frac_{1};
@@ -189,6 +190,7 @@ class LvglComponent : public PollingComponent {
   size_t current_page_{0};
   bool show_snow_{};
   bool page_wrap_{true};
+  bool big_endian_{};
   std::map<lv_group_t *, lv_obj_t *> focus_marks_{};
 
   CallbackManager<void(uint32_t)> idle_callbacks_{};

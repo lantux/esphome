@@ -195,7 +195,7 @@ void LvglComponent::draw_buffer_(const lv_area_t *area, lv_color_t *ptr) {
   }
 }
 
-void LvglComponent::flush_cb_(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p) {
+void LvglComponent::flush_cb_(lv_display_t *disp_drv, const lv_area_t *area, lv_color_t *color_p) {
   if (!this->paused_) {
     auto now = millis();
     this->draw_buffer_(area, color_p);
@@ -486,8 +486,8 @@ void lv_animimg_stop(lv_obj_t *obj) {
   lv_animimg_set_duration(obj, duration);
 }
 #endif
-void LvglComponent::static_flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p) {
-  reinterpret_cast<LvglComponent *>(disp_drv->user_data)->flush_cb_(disp_drv, area, color_p);
+void LvglComponent::static_flush_cb(lv_display_t *disp_drv, const lv_area_t *area, lv_color_t *color_p) {
+  reinterpret_cast<LvglComponent *>(lv_display_get_user_data(disp_drv))->flush_cb_(disp_drv, area, color_p);
 }
 }  // namespace lvgl
 }  // namespace esphome

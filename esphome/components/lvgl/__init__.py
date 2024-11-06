@@ -216,7 +216,7 @@ def final_validation(configs):
 async def to_code(configs):
     config_0 = configs[0]
     # Global configuration
-    cg.add_library("lvgl/lvgl", "8.4.0")
+    cg.add_library("lvgl/lvgl", "9.2.2")
     cg.add_define("USE_LVGL")
     # suppress default enabling of extra widgets
     add_define("_LV_KCONFIG_PRESENT")
@@ -243,11 +243,6 @@ async def to_code(configs):
     for font in helpers.lv_fonts_used:
         add_define(f"LV_FONT_{font.upper()}")
 
-    if config_0[df.CONF_COLOR_DEPTH] == 16:
-        add_define(
-            "LV_COLOR_16_SWAP",
-            "1" if config_0[df.CONF_BYTE_ORDER] == "big_endian" else "0",
-        )
     add_define(
         "LV_COLOR_CHROMA_KEY",
         await lvalid.lv_color.process(config_0[df.CONF_TRANSPARENCY_KEY]),
@@ -299,6 +294,7 @@ async def to_code(configs):
         )
         await cg.register_component(lv_component, config)
         Widget.create(config[CONF_ID], lv_component, obj_spec, config)
+        cg.add(lv_component.set_big_endian(config[df.CONF_BYTE_ORDER] == "big_endian"))
 
         lv_scr_act = get_scr_act(lv_component)
         async with LvContext():
