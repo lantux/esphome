@@ -222,14 +222,8 @@ async def to_code(configs):
     add_define("_LV_KCONFIG_PRESENT")
     # Always enable - lots of things use it.
     add_define("LV_DRAW_COMPLEX", "1")
-    add_define("LV_TICK_CUSTOM", "1")
-    add_define("LV_TICK_CUSTOM_INCLUDE", '"esphome/components/lvgl/lvgl_hal.h"')
-    add_define("LV_TICK_CUSTOM_SYS_TIME_EXPR", "(lv_millis())")
-    add_define("LV_MEM_CUSTOM", "1")
-    add_define("LV_MEM_CUSTOM_ALLOC", "lv_custom_mem_alloc")
-    add_define("LV_MEM_CUSTOM_FREE", "lv_custom_mem_free")
-    add_define("LV_MEM_CUSTOM_REALLOC", "lv_custom_mem_realloc")
-    add_define("LV_MEM_CUSTOM_INCLUDE", '"esphome/components/lvgl/lvgl_hal.h"')
+    add_define("LV_DRAW_BUF_ALIGN", "1")
+    add_define("LV_USE_STDLIB_MALLOC", "LV_STDLIB_CUSTOM")
 
     add_define(
         "LV_LOG_LEVEL",

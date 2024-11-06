@@ -39,6 +39,13 @@
 namespace esphome {
 namespace lvgl {
 
+#if LV_COLOR_DEPTH == 16
+using lv_color_data = uint16_t;
+#endif
+#if LV_COLOR_DEPTH == 32
+using lv_color_data = uint32_t;
+#endif
+
 extern lv_event_code_t lv_api_event;     // NOLINT
 extern lv_event_code_t lv_update_event;  // NOLINT
 extern std::string lv_event_code_name_for(uint8_t event_code);
@@ -120,7 +127,7 @@ class LvglComponent : public PollingComponent {
  public:
   LvglComponent(std::vector<display::Display *> displays, float buffer_frac, bool full_refresh, int draw_rounding,
                 bool resume_on_input);
-  static void static_flush_cb(lv_display_t *disp_drv, const lv_area_t *area, lv_color_t *color_p);
+  static void static_flush_cb(lv_display_t *disp_drv, const lv_area_t *area, uint8_t *color_p);
 
   float get_setup_priority() const override { return setup_priority::PROCESSOR; }
   void setup() override;
@@ -174,17 +181,18 @@ class LvglComponent : public PollingComponent {
 
  protected:
   void write_random_();
-  void draw_buffer_(const lv_area_t *area, lv_color_t *ptr);
-  void flush_cb_(lv_display_t *disp_drv, const lv_area_t *area, lv_color_t *color_p);
+  void draw_buffer_(const lv_area_t *area, lv_color_data *ptr);
+  void flush_cb_(lv_display_t *disp_drv, const lv_area_t *area, uint8_t *color_p);
 
   std::vector<display::Display *> displays_{};
   size_t buffer_frac_{1};
   bool full_refresh_{};
   bool resume_on_input_{};
 
-  lv_disp_draw_buf_t draw_buf_{};
-  lv_disp_drv_t disp_drv_{};
-  lv_disp_t *disp_{};
+  uint8_t *draw_buf_{};
+  lv_display_t *disp_{};
+  uint16_t width_{};
+  uint16_t height_{};
   bool paused_{};
   std::vector<LvPageType *> pages_{};
   size_t current_page_{0};
@@ -243,10 +251,10 @@ class LVTouchListener : public touchscreen::TouchListener, public Parented<LvglC
     touch_pressed_ = false;
     this->parent_->maybe_wakeup();
   }
-  lv_indev_drv_t *get_drv() { return &this->drv_; }
+  lv_indev_t *get_drv() { return this->drv_; }
 
  protected:
-  lv_indev_drv_t drv_{};
+  lv_indev_t *drv_{};
   touchscreen::TouchPoint touch_point_{};
   bool touch_pressed_{};
 };
@@ -294,10 +302,10 @@ class LVEncoderListener : public Parented<LvglComponent> {
     }
   }
 
-  lv_indev_drv_t *get_drv() { return &this->drv_; }
+  lv_indev_t *get_drv() { return this->drv_; }
 
  protected:
-  lv_indev_drv_t drv_{};
+  lv_indev_t *drv_{};
   bool pressed_{};
   int32_t count_{};
   int32_t last_count_{};
