@@ -260,7 +260,9 @@ KEYBOARD_MODES = LvConstant(
     "NUMBER",
 )
 ROLLER_MODES = LvConstant("LV_ROLLER_MODE_", "NORMAL", "INFINITE")
-DIRECTIONS = LvConstant("LV_DIR_", "LEFT", "RIGHT", "BOTTOM", "TOP")
+DIRECTIONS = LvConstant(
+    "LV_DIR_", "LEFT", "RIGHT", "BOTTOM", "TOP", typename="lv_dir_t"
+)
 TILE_DIRECTIONS = DIRECTIONS.extend("HOR", "VER", "ALL")
 CHILD_ALIGNMENTS = LvConstant(
     "LV_ALIGN_",
@@ -409,6 +411,7 @@ CONF_ANTIALIAS = "antialias"
 CONF_ARC_LENGTH = "arc_length"
 CONF_AUTO_START = "auto_start"
 CONF_BACKGROUND_STYLE = "background_style"
+CONF_BOTTOM_LAYER = "bottom_layer"
 CONF_BUTTON_STYLE = "button_style"
 CONF_DECIMAL_PLACES = "decimal_places"
 CONF_COLUMN = "column"

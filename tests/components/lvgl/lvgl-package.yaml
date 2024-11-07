@@ -24,6 +24,18 @@ lvgl:
   theme:
     obj:
       border_width: 1
+  top_layer:
+    bg_opa: transp
+    widgets:
+      - label:
+          id: label_id
+          text: "Top Layer"
+  bottom_layer:
+    bg_color: green
+    widgets:
+      - label:
+          id: bottom_layer_label
+          text: "Bottom layer"
 
   gradients:
     - id: color_bar

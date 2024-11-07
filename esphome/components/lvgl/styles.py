@@ -4,6 +4,7 @@ from esphome.core import ID
 from esphome.cpp_generator import MockObj
 
 from .defines import (
+    CONF_BOTTOM_LAYER,
     CONF_STYLE_DEFINITIONS,
     CONF_THEME,
     CONF_TOP_LAYER,
@@ -49,10 +50,16 @@ async def theme_to_code(config):
             lv_assign(apply, await context.get_lambda())
 
 
-async def add_top_layer(lv_component, config):
-    top_layer = lv.disp_get_layer_top(lv_component.get_disp())
+async def layers_to_code(lv_component, config):
     if top_conf := config.get(CONF_TOP_LAYER):
+        top_layer = lv.disp_get_layer_top(lv_component.get_disp())
         with LocalVariable("top_layer", lv_obj_t, top_layer) as top_layer_obj:
             top_w = Widget(top_layer_obj, obj_spec, top_conf)
             await set_obj_properties(top_w, top_conf)
             await add_widgets(top_w, top_conf)
+    if bottom_conf := config.get(CONF_BOTTOM_LAYER):
+        bottom_layer = lv.disp_get_layer_bottom(lv_component.get_disp())
+        with LocalVariable("bottom_layer", lv_obj_t, bottom_layer) as bottom_layer_obj:
+            bottom_w = Widget(bottom_layer_obj, obj_spec, bottom_conf)
+            await set_obj_properties(bottom_w, bottom_conf)
+            await add_widgets(bottom_w, bottom_conf)

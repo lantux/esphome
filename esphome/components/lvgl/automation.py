@@ -7,22 +7,21 @@ from esphome.const import CONF_ACTION, CONF_GROUP, CONF_ID, CONF_TIMEOUT
 from esphome.cpp_generator import get_variable
 from esphome.cpp_types import nullptr
 
+from . import layers_to_code, obj_spec
 from .defines import (
-    CONF_DISP_BG_COLOR,
-    CONF_DISP_BG_IMAGE,
+    CONF_BOTTOM_LAYER,
     CONF_EDITING,
     CONF_FREEZE,
     CONF_LVGL_ID,
     CONF_SHOW_SNOW,
+    CONF_TOP_LAYER,
     StaticCastExpression,
-    literal,
 )
-from .lv_validation import lv_bool, lv_color, lv_image
+from .lv_validation import lv_bool
 from .lvcode import (
     LVGL_COMP_ARG,
     UPDATE_EVENT,
     LambdaContext,
-    LocalVariable,
     LvglComponent,
     ReturnStatement,
     add_line_marks,
@@ -32,13 +31,12 @@ from .lvcode import (
     lv_obj,
     lvgl_comp,
 )
-from .schemas import DISP_BG_SCHEMA, LIST_ACTION_SCHEMA, LVGL_SCHEMA
+from .schemas import LIST_ACTION_SCHEMA, LVGL_SCHEMA, part_schema
 from .types import (
     LV_STATE,
     LvglAction,
     LvglCondition,
     ObjUpdateAction,
-    lv_disp_t,
     lv_group_t,
     lv_obj_t,
     lv_pseudo_button_t,
@@ -119,16 +117,6 @@ async def lvgl_is_idle(config, condition_id, template_arg, args):
     return var
 
 
-async def disp_update(disp, config: dict):
-    if CONF_DISP_BG_COLOR not in config and CONF_DISP_BG_IMAGE not in config:
-        return
-    with LocalVariable("lv_disp_tmp", lv_disp_t, disp) as disp_temp:
-        if (bg_color := config.get(CONF_DISP_BG_COLOR)) is not None:
-            lv.disp_set_bg_color(disp_temp, await lv_color.process(bg_color))
-        if bg_image := config.get(CONF_DISP_BG_IMAGE):
-            lv.disp_set_bg_image(disp_temp, await lv_image.process(bg_image))
-
-
 @automation.register_action(
     "lvgl.widget.redraw",
     ObjUpdateAction,
@@ -158,18 +146,18 @@ async def obj_invalidate_to_code(config, action_id, template_arg, args):
 @automation.register_action(
     "lvgl.update",
     LvglAction,
-    DISP_BG_SCHEMA.extend(
+    part_schema(obj_spec).extend(
         {
             cv.GenerateID(): cv.use_id(LvglComponent),
+            cv.Optional(CONF_TOP_LAYER): part_schema(obj_spec),
+            cv.Optional(CONF_BOTTOM_LAYER): part_schema(obj_spec),
         }
-    ).add_extra(cv.has_at_least_one_key(CONF_DISP_BG_COLOR, CONF_DISP_BG_IMAGE)),
+    ),
 )
 async def lvgl_update_to_code(config, action_id, template_arg, args):
-    widgets = await get_widgets(config)
-    w = widgets[0]
-    disp = literal(f"{w.obj}->get_disp()")
+    lv_component = await cg.get_variable(config[CONF_LVGL_ID])
     async with LambdaContext(LVGL_COMP_ARG, where=action_id) as context:
-        await disp_update(disp, config)
+        await layers_to_code(lv_component, config)
     var = cg.new_Pvariable(action_id, template_arg, await context.get_lambda())
     await cg.register_parented(var, w.var)
     return var

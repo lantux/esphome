@@ -41,7 +41,7 @@ from .schemas import (
     grid_alignments,
     obj_schema,
 )
-from .styles import add_top_layer, styles_to_code, theme_to_code
+from .styles import layers_to_code, styles_to_code, theme_to_code
 from .touchscreens import touchscreen_schema, touchscreens_to_code
 from .trigger import generate_triggers
 from .types import (
@@ -304,9 +304,8 @@ async def to_code(configs):
             await set_obj_properties(lv_scr_act, config)
             await add_widgets(lv_scr_act, config)
             await add_pages(lv_component, config)
-            await add_top_layer(lv_component, config)
+            await layers_to_code(lv_component, config)
             await msgboxes_to_code(lv_component, config)
-            await disp_update(lv_component.get_disp(), config)
     # Set this directly since we are limited in how many methods can be added to the Widget class.
     Widget.widgets_completed = True
     async with LvContext():
@@ -417,6 +416,7 @@ LVGL_SCHEMA = (
             cv.Optional(df.CONF_MSGBOXES): cv.ensure_list(MSGBOX_SCHEMA),
             cv.Optional(df.CONF_PAGE_WRAP, default=True): lv_bool,
             cv.Optional(df.CONF_TOP_LAYER): container_schema(obj_spec),
+            cv.Optional(df.CONF_BOTTOM_LAYER): container_schema(obj_spec),
             cv.Optional(df.CONF_TRANSPARENCY_KEY, default=0x000400): lvalid.lv_color,
             cv.Optional(df.CONF_THEME): cv.Schema(
                 {cv.Optional(name): obj_schema(w) for name, w in WIDGET_TYPES.items()}
