@@ -28,7 +28,6 @@ lvgl:
   gradients:
     - id: color_bar
       direction: hor
-      dither: err_diff
       stops:
         - color: 0xFF0000
           position: 0
@@ -130,7 +129,7 @@ lvgl:
       on_all_events:
         logger.log:
           format: "Event %s"
-          args: ['lv_event_code_name_for(event->code).c_str()']
+          args: ['lv_event_code_name_for(lv_event_get_code(event)).c_str()']
       skip: true
       layout:
         type: flex
@@ -160,10 +159,6 @@ lvgl:
             repeat_count: 10
             duration: 1s
             auto_start: true
-            on_all_events:
-              logger.log:
-                format: "Event %s"
-                args: ['lv_event_code_name_for(event->code).c_str()']
         - label:
             id: hello_label
             text: Hello world
@@ -196,7 +191,6 @@ lvgl:
             anim_time: 1s
             bg_color: light_blue
             bg_grad_color: light_blue
-            bg_dither_mode: ordered
             bg_grad_dir: hor
             bg_grad_stop: 128
             bg_image_opa: transp

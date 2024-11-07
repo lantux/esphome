@@ -319,14 +319,14 @@ void LvButtonMatrixType::set_obj(lv_obj_t *lv_obj) {
         auto *self = static_cast<LvButtonMatrixType *>(lv_event_get_user_data(event));
         if (self->key_callback_.size() == 0)
           return;
-        auto key_idx = lv_btnmatrix_get_selected_btn(self->obj);
-        if (key_idx == LV_BTNMATRIX_BTN_NONE)
+        auto key_idx = lv_buttonmatrix_get_selected_button(self->obj);
+        if (key_idx == LV_BUTTONMATRIX_BUTTON_NONE)
           return;
         if (self->key_map_.count(key_idx) != 0) {
           self->send_key_(self->key_map_[key_idx]);
           return;
         }
-        const auto *str = lv_btnmatrix_get_btn_text(self->obj, key_idx);
+        const auto *str = lv_buttonmatrix_get_button_text(self->obj, key_idx);
         auto len = strlen(str);
         while (len--)
           self->send_key_(*str++);
@@ -350,10 +350,10 @@ void LvKeyboardType::set_obj(lv_obj_t *lv_obj) {
         if (self->key_callback_.size() == 0)
           return;
 
-        auto key_idx = lv_btnmatrix_get_selected_btn(self->obj);
-        if (key_idx == LV_BTNMATRIX_BTN_NONE)
+        auto key_idx = lv_buttonmatrix_get_selected_button(self->obj);
+        if (key_idx == LV_BUTTONMATRIX_BUTTON_NONE)
           return;
-        const char *txt = lv_btnmatrix_get_btn_text(self->obj, key_idx);
+        const char *txt = lv_buttonmatrix_get_button_text(self->obj, key_idx);
         if (txt == nullptr)
           return;
         for (const auto *kb_special_key : KB_SPECIAL_KEYS) {

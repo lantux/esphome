@@ -359,7 +359,7 @@ class LvRollerType : public LvSelectable {
 class LvButtonMatrixType : public key_provider::KeyProvider, public LvCompound {
  public:
   void set_obj(lv_obj_t *lv_obj) override;
-  uint16_t get_selected() { return lv_btnmatrix_get_selected_btn(this->obj); }
+  uint16_t get_selected() { return lv_buttonmatrix_get_selected_button(this->obj); }
   void set_key(size_t idx, uint8_t key) { this->key_map_[idx] = key; }
 
  protected:

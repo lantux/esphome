@@ -1,5 +1,4 @@
-from collections.abc import Awaitable
-from typing import Callable
+from typing import Any, Callable
 
 from esphome import automation
 import esphome.codegen as cg
@@ -15,6 +14,7 @@ from .defines import (
     CONF_FREEZE,
     CONF_LVGL_ID,
     CONF_SHOW_SNOW,
+    StaticCastExpression,
     literal,
 )
 from .lv_validation import lv_bool, lv_color, lv_image
@@ -31,7 +31,6 @@ from .lvcode import (
     lv_expr,
     lv_obj,
     lvgl_comp,
-    static_cast,
 )
 from .schemas import DISP_BG_SCHEMA, LIST_ACTION_SCHEMA, LVGL_SCHEMA
 from .types import (
@@ -58,7 +57,7 @@ focused_widgets = set()
 
 async def action_to_code(
     widgets: list[Widget],
-    action: Callable[[Widget], Awaitable[None]],
+    action: Callable[[Widget], Any],
     action_id,
     template_arg,
     args,
@@ -79,7 +78,7 @@ async def update_to_code(config, action_id, template_arg, args):
             widget.type.w_type.value_property is not None
             and widget.type.w_type.value_property in config
         ):
-            lv.event_send(widget.obj, UPDATE_EVENT, nullptr)
+            lv.obj_send_event(widget.obj, UPDATE_EVENT, nullptr)
 
     widgets = await get_widgets(config[CONF_ID])
     return await action_to_code(widgets, do_update, action_id, template_arg, args)
@@ -287,7 +286,7 @@ async def widget_focus(config, action_id, template_arg, args):
     widget = await get_widgets(config)
     if widget:
         widget = widget[0]
-        group = static_cast(
+        group = StaticCastExpression(
             lv_group_t.operator("ptr"), lv_expr.obj_get_group(widget.obj)
         )
     elif group := config.get(CONF_GROUP):

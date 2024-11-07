@@ -96,7 +96,6 @@ STYLE_PROPS = {
     "bg_color": lvalid.lv_color,
     "bg_grad": lv_gradient,
     "bg_grad_color": lvalid.lv_color,
-    "bg_dither_mode": df.LvConstant("LV_DITHER_", "NONE", "ORDERED", "ERR_DIFF").one_of,
     "bg_grad_dir": LV_GRAD_DIR.one_of,
     "bg_grad_stop": lvalid.stop_value,
     "bg_image_opa": lvalid.opacity,
@@ -109,7 +108,14 @@ STYLE_PROPS = {
     "border_opa": lvalid.opacity,
     "border_post": lvalid.lv_bool,
     "border_side": df.LvConstant(
-        "LV_BORDER_SIDE_", "NONE", "TOP", "BOTTOM", "LEFT", "RIGHT", "INTERNAL"
+        "LV_BORDER_SIDE_",
+        "NONE",
+        "TOP",
+        "BOTTOM",
+        "LEFT",
+        "RIGHT",
+        "INTERNAL",
+        typename="lv_border_side_t",
     ).several_of,
     "border_width": lvalid.lv_positive_int,
     "clip_corner": lvalid.lv_bool,
@@ -144,7 +150,11 @@ STYLE_PROPS = {
     ).one_of,
     "text_color": lvalid.lv_color,
     "text_decor": df.LvConstant(
-        "LV_TEXT_DECOR_", "NONE", "UNDERLINE", "STRIKETHROUGH"
+        "LV_TEXT_DECOR_",
+        "NONE",
+        "UNDERLINE",
+        "STRIKETHROUGH",
+        typename="lv_text_decor_t",
     ).several_of,
     "text_font": lv_font,
     "text_letter_space": cv.positive_int,
@@ -167,14 +177,7 @@ STYLE_PROPS = {
     "y": lvalid.pixels_or_percent,
 }
 
-STYLE_REMAP = {
-    "bg_image_opa": "bg_img_opa",
-    "bg_image_recolor": "bg_img_recolor",
-    "bg_image_recolor_opa": "bg_img_recolor_opa",
-    "bg_image_src": "bg_img_src",
-    "image_recolor": "img_recolor",
-    "image_recolor_opa": "img_recolor_opa",
-}
+STYLE_REMAP = {}
 
 # Complete object style schema
 STYLE_SCHEMA = cv.Schema({cv.Optional(k): v for k, v in STYLE_PROPS.items()}).extend(

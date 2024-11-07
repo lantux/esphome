@@ -110,9 +110,9 @@ async def msgbox_to_code(top_layer, conf):
     lv_obj.set_style_pad_all(outer, 0, 0)
     lv_obj.set_style_radius(outer, 0, 0)
     outer_widget.add_flag("LV_OBJ_FLAG_HIDDEN")
-    lv_assign(
-        msgbox, lv_expr.msgbox_create(outer, title, text, text_list, close_button)
-    )
+    lv_assign(msgbox, lv_expr.msgbox_create(outer))
+    lv.msgbox_add_title(msgbox, title)
+    lv.msgbox_add_text(msgbox, text)
     lv_obj.set_style_align(msgbox, literal("LV_ALIGN_CENTER"), 0)
     lv_add(buttonmatrix.set_obj(lv_expr.msgbox_get_btns(msgbox)))
     if button_style := conf.get(CONF_BUTTON_STYLE):

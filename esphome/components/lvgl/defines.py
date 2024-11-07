@@ -9,7 +9,7 @@ import logging
 from esphome import codegen as cg, config_validation as cv
 from esphome.const import CONF_ITEMS
 from esphome.core import Lambda
-from esphome.cpp_generator import LambdaExpression, MockObj
+from esphome.cpp_generator import Expression, LambdaExpression, MockObj, SafeExpType
 from esphome.cpp_types import uint32
 from esphome.schema_extractors import SCHEMA_EXTRACT, schema_extractor
 
@@ -19,6 +19,17 @@ LOGGER = logging.getLogger(__name__)
 lvgl_ns = cg.esphome_ns.namespace("lvgl")
 
 lv_defines = {}  # Dict of #defines to provide as build flags
+
+
+class StaticCastExpression(Expression):
+    __slots__ = ("type", "exp")
+
+    def __init__(self, type: str, exp: SafeExpType):
+        self.type = type
+        self.exp = cg.safe_exp(exp)
+
+    def __str__(self):
+        return f"static_cast<{self.type}>({self.exp})"
 
 
 def add_define(macro, value="1"):
@@ -82,9 +93,10 @@ class LvConstant(LValidator):
     The property `one_of` has the single case validator, and `several_of` allows a list of constants.
     """
 
-    def __init__(self, prefix: str, *choices):
+    def __init__(self, prefix: str, *choices, typename=None):
         self.prefix = prefix
         self.choices = choices
+        self.typename = typename
         prefixed_choices = [prefix + v for v in choices]
         prefixed_validator = cv.one_of(*prefixed_choices, upper=True)
 
@@ -106,14 +118,20 @@ class LvConstant(LValidator):
     def mapper(self, value):
         if not isinstance(value, list):
             value = [value]
-        return literal(
-            "|".join(
-                [
-                    str(v) if str(v).startswith(self.prefix) else self.prefix + str(v)
-                    for v in value
-                ]
-            ).upper()
-        )
+        value = [
+            (
+                str(v).upper()
+                if str(v).startswith(self.prefix)
+                else self.prefix + str(v).upper()
+            )
+            for v in value
+        ]
+        if len(value) == 1:
+            return literal(value[0])
+        value = literal("|".join(value))
+        if self.typename is None:
+            return value
+        return StaticCastExpression(self.typename, value)
 
     def extend(self, *choices):
         """
@@ -187,7 +205,6 @@ LV_ANIM = LvConstant(
 )
 
 LV_GRAD_DIR = LvConstant("LV_GRAD_DIR_", "NONE", "HOR", "VER")
-LV_DITHER = LvConstant("LV_DITHER_", "NONE", "ORDERED", "ERR_DIFF")
 
 LV_LOG_LEVELS = {
     "VERBOSE": "TRACE",
@@ -324,7 +341,7 @@ BAR_MODES = LvConstant("LV_BAR_MODE_", "NORMAL", "SYMMETRICAL", "RANGE")
 SLIDER_MODES = LvConstant("LV_SLIDER_MODE_", "NORMAL", "SYMMETRICAL", "RANGE")
 
 BUTTONMATRIX_CTRLS = LvConstant(
-    "LV_BTNMATRIX_CTRL_",
+    "LV_BUTTONMATRIX_CTRL_",
     "HIDDEN",
     "NO_REPEAT",
     "DISABLED",
@@ -335,6 +352,7 @@ BUTTONMATRIX_CTRLS = LvConstant(
     "RECOLOR",
     "CUSTOM_1",
     "CUSTOM_2",
+    typename="lv_buttonmatrix_ctrl_t",
 )
 
 LV_BASE_ALIGNMENTS = (

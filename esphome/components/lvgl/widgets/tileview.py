@@ -118,6 +118,6 @@ async def tileview_select(config, action_id, template_arg, args):
             lv_obj.set_tile_id(
                 widgets[0].obj, column, row, literal(config[CONF_ANIMATED])
             )
-        lv.event_send(w.obj, LV_EVENT.VALUE_CHANGED, cg.nullptr)
+        lv.obj_send_event(w.obj, LV_EVENT.VALUE_CHANGED, cg.nullptr)
 
     return await action_to_code(widgets, do_select, action_id, template_arg, args)

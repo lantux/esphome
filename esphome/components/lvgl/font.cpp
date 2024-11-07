@@ -4,8 +4,8 @@
 namespace esphome {
 namespace lvgl {
 
-static const uint8_t *get_glyph_bitmap(const lv_font_t *font, uint32_t unicode_letter) {
-  auto *fe = (FontEngine *) font->dsc;
+static const void *get_glyph_bitmap(lv_font_glyph_dsc_t *dsc, uint32_t unicode_letter) {
+  auto *fe = (FontEngine *) dsc;
   const auto *gd = fe->get_glyph_data(unicode_letter);
   if (gd == nullptr)
     return nullptr;
@@ -25,7 +25,7 @@ static bool get_glyph_dsc_cb(const lv_font_t *font, lv_font_glyph_dsc_t *dsc, ui
   dsc->box_w = gd->width;
   dsc->box_h = gd->height;
   dsc->is_placeholder = 0;
-  dsc->bpp = fe->bpp;
+  dsc->format = (lv_font_glyph_format_t) fe->bpp;
   return true;
 }
 
@@ -35,7 +35,7 @@ FontEngine::FontEngine(font::Font *esp_font) : font_(esp_font) {
   this->lv_font_.line_height = this->height = esp_font->get_height();
   this->lv_font_.base_line = this->baseline = this->lv_font_.line_height - esp_font->get_baseline();
   this->lv_font_.get_glyph_dsc = get_glyph_dsc_cb;
-  this->lv_font_.get_glyph_bitmap = get_glyph_bitmap;
+  this->lv_font_.get_glyph_bitmap = lv_font_get_bitmap_fmt_txt;
   this->lv_font_.subpx = LV_FONT_SUBPX_NONE;
   this->lv_font_.underline_position = -1;
   this->lv_font_.underline_thickness = 1;

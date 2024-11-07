@@ -109,6 +109,6 @@ async def tabview_select(config, action_id, template_arg, args):
 
     async def do_select(w: Widget):
         lv.tabview_set_act(w.obj, index, literal(config[CONF_ANIMATED]))
-        lv.event_send(w.obj, LV_EVENT.VALUE_CHANGED, cg.nullptr)
+        lv.obj_send_event(w.obj, LV_EVENT.VALUE_CHANGED, cg.nullptr)
 
     return await action_to_code(widget, do_select, action_id, template_arg, args)

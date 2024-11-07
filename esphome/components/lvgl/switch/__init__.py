@@ -38,7 +38,7 @@ async def to_code(config):
             widget.add_state(LV_STATE.CHECKED)
             cond.else_()
             widget.clear_state(LV_STATE.CHECKED)
-        lv.event_send(widget.obj, API_EVENT, cg.nullptr)
+        lv.obj_send_event(widget.obj, API_EVENT, cg.nullptr)
         control.add(switch.publish_state(literal("v")))
     async with LvContext() as ctx:
         lv_add(switch.set_control_lambda(await control.get_lambda()))
