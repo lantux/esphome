@@ -146,7 +146,9 @@ async def obj_invalidate_to_code(config, action_id, template_arg, args):
 @automation.register_action(
     "lvgl.update",
     LvglAction,
-    part_schema(obj_spec).extend(
+    part_schema(obj_spec)
+    .extend(LVGL_SCHEMA)
+    .extend(
         {
             cv.GenerateID(): cv.use_id(LvglComponent),
             cv.Optional(CONF_TOP_LAYER): part_schema(obj_spec),
@@ -155,43 +157,45 @@ async def obj_invalidate_to_code(config, action_id, template_arg, args):
     ),
 )
 async def lvgl_update_to_code(config, action_id, template_arg, args):
-    lv_component = await cg.get_variable(config[CONF_LVGL_ID])
+    widgets = await get_widgets(config, CONF_LVGL_ID)
+    lv_component = widgets[0]
     async with LambdaContext(LVGL_COMP_ARG, where=action_id) as context:
         await layers_to_code(lv_component, config)
     var = cg.new_Pvariable(action_id, template_arg, await context.get_lambda())
-    await cg.register_parented(var, w.var)
+    await cg.register_parented(var, lv_component.var)
     return var
 
 
 @automation.register_action(
     "lvgl.pause",
     LvglAction,
-    {
-        cv.GenerateID(): cv.use_id(LvglComponent),
-        cv.Optional(CONF_SHOW_SNOW, default=False): lv_bool,
-    },
+    LVGL_SCHEMA.extend(
+        {
+            cv.Optional(CONF_SHOW_SNOW, default=False): lv_bool,
+        }
+    ),
 )
 async def pause_action_to_code(config, action_id, template_arg, args):
+    lv_comp = await cg.get_variable(config[CONF_LVGL_ID])
     async with LambdaContext(LVGL_COMP_ARG) as context:
         add_line_marks(where=action_id)
         lv_add(lvgl_comp.set_paused(True, config[CONF_SHOW_SNOW]))
     var = cg.new_Pvariable(action_id, template_arg, await context.get_lambda())
-    await cg.register_parented(var, config[CONF_ID])
+    await cg.register_parented(var, lv_comp)
     return var
 
 
 @automation.register_action(
     "lvgl.resume",
     LvglAction,
-    {
-        cv.GenerateID(): cv.use_id(LvglComponent),
-    },
+    LVGL_SCHEMA,
 )
 async def resume_action_to_code(config, action_id, template_arg, args):
+    lv_comp = await cg.get_variable(config[CONF_LVGL_ID])
     async with LambdaContext(LVGL_COMP_ARG, where=action_id) as context:
         lv_add(lvgl_comp.set_paused(False, False))
     var = cg.new_Pvariable(action_id, template_arg, await context.get_lambda())
-    await cg.register_parented(var, config[CONF_ID])
+    await cg.register_parented(var, lv_comp)
     return var
 
 
@@ -250,14 +254,15 @@ def focused_id(value):
     ObjUpdateAction,
     cv.Any(
         cv.maybe_simple_value(
-            {
-                cv.Optional(CONF_GROUP): cv.use_id(lv_group_t),
-                cv.Required(CONF_ACTION): cv.one_of(
-                    "MARK", "RESTORE", "NEXT", "PREVIOUS", upper=True
-                ),
-                cv.GenerateID(CONF_LVGL_ID): cv.use_id(LvglComponent),
-                cv.Optional(CONF_FREEZE, default=False): cv.boolean,
-            },
+            LVGL_SCHEMA.extend(
+                {
+                    cv.Optional(CONF_GROUP): cv.use_id(lv_group_t),
+                    cv.Required(CONF_ACTION): cv.one_of(
+                        "MARK", "RESTORE", "NEXT", "PREVIOUS", upper=True
+                    ),
+                    cv.Optional(CONF_FREEZE, default=False): cv.boolean,
+                }
+            ),
             key=CONF_ACTION,
         ),
         cv.maybe_simple_value(
