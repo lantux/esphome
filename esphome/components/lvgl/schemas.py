@@ -344,17 +344,6 @@ FLEX_OBJ_SCHEMA = {
     cv.Optional(df.CONF_FLEX_GROW): cv.int_,
 }
 
-DISP_BG_SCHEMA = cv.Schema(
-    {
-        cv.Optional(df.CONF_DISP_BG_IMAGE): cv.invalid(
-            "disp_bg_image is removed, use bottom_layer instead"
-        ),
-        cv.Optional(df.CONF_DISP_BG_COLOR): cv.invalid(
-            "disp_bg_color is removed, use bottom_layer instead"
-        ),
-    }
-)
-
 # A style schema that can include text
 STYLED_TEXT_SCHEMA = cv.maybe_simple_value(
     STYLE_SCHEMA.extend(TEXT_SCHEMA), key=CONF_TEXT

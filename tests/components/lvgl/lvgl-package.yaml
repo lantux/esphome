@@ -19,8 +19,6 @@ lvgl:
   on_resume:
     logger.log: LVGL has resumed
   bg_color: light_blue
-  disp_bg_color: color_id
-  disp_bg_image: cat_image
   theme:
     obj:
       border_width: 1
@@ -31,6 +29,7 @@ lvgl:
           id: label_id
           text: "Top Layer"
   bottom_layer:
+    bg_image_src: cat_image
     bg_color: green
     widgets:
       - label:
@@ -113,12 +112,11 @@ lvgl:
       body:
         text: This is a sample messagebox
         bg_color: 0x808080
-      button_style:
-        bg_color: 0xff00
-        border_width: 4
       buttons:
         - id: msgbox_button
           text: Button
+          bg_color: 0xff00
+          border_width: 4
         - id: msgbox_apply
           text: "Close"
           on_click:
@@ -186,8 +184,9 @@ lvgl:
               then:
                 - lvgl.animimg.stop: anim_img
                 - lvgl.update:
-                    disp_bg_color: 0xffff00
-                    disp_bg_image: cat_image
+                    bottom_layer:
+                      bg_color: 0xffff00
+                      bg_image_src: cat_image
                 - lvgl.widget.show: message_box
         - label:
             text: "Hello shiny day"

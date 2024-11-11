@@ -139,7 +139,9 @@ class LvConstant(LValidator):
         :param choices: The extra choices
         :return: A new LVConstant instance
         """
-        return LvConstant(self.prefix, *(self.choices + choices))
+        return LvConstant(
+            self.prefix, *(self.choices + choices), typename=self.typename
+        )
 
 
 # Parts
@@ -416,8 +418,6 @@ CONF_BUTTON_STYLE = "button_style"
 CONF_DECIMAL_PLACES = "decimal_places"
 CONF_COLUMN = "column"
 CONF_DIGITS = "digits"
-CONF_DISP_BG_COLOR = "disp_bg_color"
-CONF_DISP_BG_IMAGE = "disp_bg_image"
 CONF_BODY = "body"
 CONF_BUTTONS = "buttons"
 CONF_BYTE_ORDER = "byte_order"
@@ -456,6 +456,7 @@ CONF_GRID_COLUMN_ALIGN = "grid_column_align"
 CONF_GRID_COLUMNS = "grid_columns"
 CONF_GRID_ROW_ALIGN = "grid_row_align"
 CONF_GRID_ROWS = "grid_rows"
+CONF_HEADER_BUTTONS = "header_buttons"
 CONF_HEADER_MODE = "header_mode"
 CONF_HOME = "home"
 CONF_INITIAL_FOCUS = "initial_focus"

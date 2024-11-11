@@ -2,7 +2,6 @@ from esphome import automation
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_INDEX, CONF_NAME, CONF_POSITION, CONF_SIZE
-from esphome.cpp_generator import MockObjClass
 
 from ..automation import action_to_code
 from ..defines import (
@@ -67,6 +66,10 @@ class TabviewType(WidgetType):
         return "btnmatrix", TYPE_FLEX
 
     async def to_code(self, w: Widget, config: dict):
+        await w.set_property("tab_bar_size", await size.process(config[CONF_SIZE]))
+        await w.set_property(
+            "tab_bar_position", await DIRECTIONS.process(config[CONF_POSITION])
+        )
         for tab_conf in config[CONF_TABS]:
             w_id = tab_conf[CONF_ID]
             tab_obj = cg.Pvariable(w_id, cg.nullptr, type_=lv_tab_t)
@@ -79,14 +82,6 @@ class TabviewType(WidgetType):
                 "tabview_btnmatrix", lv_obj_t, rhs=lv_expr.tabview_get_tab_btns(w.obj)
             ) as btnmatrix_obj:
                 await set_obj_properties(Widget(btnmatrix_obj, obj_spec), button_style)
-
-    def obj_creator(self, parent: MockObjClass, config: dict):
-        return lv_expr.call(
-            "tabview_create",
-            parent,
-            literal(config[CONF_POSITION]),
-            literal(config[CONF_SIZE]),
-        )
 
 
 tabview_spec = TabviewType()

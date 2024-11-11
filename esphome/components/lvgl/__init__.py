@@ -21,7 +21,7 @@ from esphome.final_validate import full_config
 from esphome.helpers import write_file_if_changed
 
 from . import defines as df, helpers, lv_validation as lvalid
-from .automation import disp_update, focused_widgets, update_to_code
+from .automation import focused_widgets, layers_to_code, update_to_code
 from .defines import add_define
 from .encoders import ENCODERS_CONFIG, encoders_to_code, initial_focus_to_code
 from .gradient import GRADIENT_SCHEMA, gradients_to_code
@@ -29,7 +29,6 @@ from .hello_world import get_hello_world
 from .lv_validation import lv_bool, lv_images_used
 from .lvcode import LvContext, LvglComponent, lvgl_static
 from .schemas import (
-    DISP_BG_SCHEMA,
     FLEX_OBJ_SCHEMA,
     GRID_CELL_SCHEMA,
     LAYOUT_SCHEMAS,
@@ -41,7 +40,7 @@ from .schemas import (
     grid_alignments,
     obj_schema,
 )
-from .styles import layers_to_code, styles_to_code, theme_to_code
+from .styles import styles_to_code, theme_to_code
 from .touchscreens import touchscreen_schema, touchscreens_to_code
 from .trigger import generate_triggers
 from .types import (
@@ -428,7 +427,6 @@ LVGL_SCHEMA = (
             cv.Optional(df.CONF_RESUME_ON_INPUT, default=True): cv.boolean,
         }
     )
-    .extend(DISP_BG_SCHEMA)
     .add_extra(add_hello_world)
 )
 

@@ -118,6 +118,7 @@ class WidgetType:
         schema=None,
         modify_schema=None,
         lv_name=None,
+        to_code=None,
     ):
         """
         :param name: The widget name, e.g. "bar"

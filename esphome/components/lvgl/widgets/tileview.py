@@ -67,13 +67,14 @@ class TileviewType(WidgetType):
             w_id = tile_conf[CONF_ID]
             tile_obj = lv_Pvariable(lv_obj_t, w_id)
             tile = Widget.create(w_id, tile_obj, tile_spec, tile_conf)
-            dirs = tile_conf[CONF_DIR]
-            if isinstance(dirs, list):
-                dirs = "|".join(dirs)
+            dirs = await TILE_DIRECTIONS.process(tile_conf[CONF_DIR])
             lv_assign(
                 tile_obj,
                 lv_expr.tileview_add_tile(
-                    w.obj, tile_conf[CONF_COLUMN], tile_conf[CONF_ROW], literal(dirs)
+                    w.obj,
+                    tile_conf[CONF_COLUMN],
+                    tile_conf[CONF_ROW],
+                    dirs,
                 ),
             )
             await set_obj_properties(tile, tile_conf)

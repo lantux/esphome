@@ -6,15 +6,8 @@ from ..types import LvBoolean, WidgetType
 lv_button_t = LvBoolean("lv_button_t")
 
 
-class ButtonType(WidgetType):
-    def __init__(self):
-        super().__init__(CONF_BUTTON, lv_button_t, (CONF_MAIN,))
-
-    def get_uses(self):
-        return ("btn",)
-
-    async def to_code(self, w, config):
-        return []
-
-
-button_spec = ButtonType()
+button_spec = WidgetType(
+    CONF_BUTTON,
+    lv_button_t,
+    (CONF_MAIN,),
+)

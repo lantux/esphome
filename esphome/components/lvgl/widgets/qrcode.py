@@ -1,11 +1,11 @@
 import esphome.codegen as cg
+from esphome.components.lvgl.widgets.img import CONF_IMAGE
 import esphome.config_validation as cv
 from esphome.const import CONF_SIZE, CONF_TEXT
-from esphome.cpp_generator import MockObjClass
 
 from ..defines import CONF_MAIN, literal
-from ..lv_validation import color, color_retmapper, lv_text
-from ..lvcode import LocalVariable, lv, lv_expr
+from ..lv_validation import color, lv_color, lv_int, lv_text
+from ..lvcode import LocalVariable, lv
 from ..schemas import TEXT_SCHEMA
 from ..types import WidgetType, lv_obj_t
 from . import Widget
@@ -18,7 +18,15 @@ QRCODE_SCHEMA = TEXT_SCHEMA.extend(
     {
         cv.Optional(CONF_DARK_COLOR, default="black"): color,
         cv.Optional(CONF_LIGHT_COLOR, default="white"): color,
-        cv.Required(CONF_SIZE): cv.int_,
+        cv.Required(CONF_SIZE): lv_int,
+    }
+)
+
+QRCODE_MODIFY_SCHEMA = TEXT_SCHEMA.extend(
+    {
+        cv.Optional(CONF_DARK_COLOR): lv_color,
+        cv.Optional(CONF_LIGHT_COLOR): lv_color,
+        cv.Optional(CONF_SIZE): lv_int,
     }
 )
 
@@ -30,20 +38,24 @@ class QrCodeType(WidgetType):
             lv_obj_t,
             (CONF_MAIN,),
             QRCODE_SCHEMA,
-            modify_schema=TEXT_SCHEMA,
+            modify_schema=QRCODE_MODIFY_SCHEMA,
         )
 
     def get_uses(self):
-        return ("canvas", "img")
-
-    def obj_creator(self, parent: MockObjClass, config: dict):
-        dark_color = color_retmapper(config[CONF_DARK_COLOR])
-        light_color = color_retmapper(config[CONF_LIGHT_COLOR])
-        size = config[CONF_SIZE]
-        return lv_expr.call("qrcode_create", parent, size, dark_color, light_color)
+        return "canvas", CONF_IMAGE
 
     async def to_code(self, w: Widget, config):
+        await w.set_property(
+            CONF_LIGHT_COLOR, await lv_color.process(config.get(CONF_LIGHT_COLOR))
+        )
+        await w.set_property(
+            CONF_DARK_COLOR, await lv_color.process(config.get(CONF_DARK_COLOR))
+        )
+        await w.set_property(CONF_SIZE, await lv_int.process(config.get(CONF_SIZE)))
         if (value := config.get(CONF_TEXT)) is not None:
+            if isinstance(value, str):
+                lv.qrcode_update(w.obj, value, len(value))
+                return
             value = await lv_text.process(value)
             with LocalVariable(
                 "qr_text", cg.const_char_ptr, value, modifier=""

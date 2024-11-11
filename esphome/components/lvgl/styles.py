@@ -3,19 +3,12 @@ from esphome.const import CONF_ID
 from esphome.core import ID
 from esphome.cpp_generator import MockObj
 
-from .defines import (
-    CONF_BOTTOM_LAYER,
-    CONF_STYLE_DEFINITIONS,
-    CONF_THEME,
-    CONF_TOP_LAYER,
-    LValidator,
-    literal,
-)
+from .defines import CONF_STYLE_DEFINITIONS, CONF_THEME, LValidator, literal
 from .helpers import add_lv_use
-from .lvcode import LambdaContext, LocalVariable, lv, lv_assign, lv_variable
+from .lvcode import LambdaContext, lv, lv_assign, lv_variable
 from .schemas import ALL_STYLES, STYLE_REMAP
-from .types import lv_lambda_t, lv_obj_t, lv_obj_t_ptr
-from .widgets import Widget, add_widgets, set_obj_properties, theme_widget_map
+from .types import lv_lambda_t, lv_obj_t_ptr
+from .widgets import Widget, set_obj_properties, theme_widget_map
 from .widgets.obj import obj_spec
 
 
@@ -48,18 +41,3 @@ async def theme_to_code(config):
             async with LambdaContext([(lv_obj_t_ptr, "obj")], where=w_name) as context:
                 await set_obj_properties(ow, style)
             lv_assign(apply, await context.get_lambda())
-
-
-async def layers_to_code(lv_component, config):
-    if top_conf := config.get(CONF_TOP_LAYER):
-        top_layer = lv.disp_get_layer_top(lv_component.get_disp())
-        with LocalVariable("top_layer", lv_obj_t, top_layer) as top_layer_obj:
-            top_w = Widget(top_layer_obj, obj_spec, top_conf)
-            await set_obj_properties(top_w, top_conf)
-            await add_widgets(top_w, top_conf)
-    if bottom_conf := config.get(CONF_BOTTOM_LAYER):
-        bottom_layer = lv.disp_get_layer_bottom(lv_component.get_disp())
-        with LocalVariable("bottom_layer", lv_obj_t, bottom_layer) as bottom_layer_obj:
-            bottom_w = Widget(bottom_layer_obj, obj_spec, bottom_conf)
-            await set_obj_properties(bottom_w, bottom_conf)
-            await add_widgets(bottom_w, bottom_conf)

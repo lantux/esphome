@@ -7,12 +7,14 @@ from esphome.const import CONF_ACTION, CONF_GROUP, CONF_ID, CONF_TIMEOUT
 from esphome.cpp_generator import get_variable
 from esphome.cpp_types import nullptr
 
-from . import layers_to_code, obj_spec
 from .defines import (
     CONF_BOTTOM_LAYER,
     CONF_EDITING,
     CONF_FREEZE,
     CONF_LVGL_ID,
+    CONF_MAIN,
+    CONF_OBJ,
+    CONF_SCROLLBAR,
     CONF_SHOW_SNOW,
     CONF_TOP_LAYER,
     StaticCastExpression,
@@ -22,6 +24,7 @@ from .lvcode import (
     LVGL_COMP_ARG,
     UPDATE_EVENT,
     LambdaContext,
+    LocalVariable,
     LvglComponent,
     ReturnStatement,
     add_line_marks,
@@ -37,12 +40,14 @@ from .types import (
     LvglAction,
     LvglCondition,
     ObjUpdateAction,
+    WidgetType,
     lv_group_t,
     lv_obj_t,
     lv_pseudo_button_t,
 )
 from .widgets import (
     Widget,
+    add_widgets,
     get_scr_act,
     get_widgets,
     set_obj_properties,
@@ -51,6 +56,21 @@ from .widgets import (
 
 # Record widgets that are used in a focused action here
 focused_widgets = set()
+
+
+async def layers_to_code(lv_component, config):
+    if top_conf := config.get(CONF_TOP_LAYER):
+        top_layer = lv_expr.display_get_layer_top(lv_component.get_disp())
+        with LocalVariable("top_layer", lv_obj_t, top_layer) as top_layer_obj:
+            top_w = Widget(top_layer_obj, layer_spec, top_conf)
+            await set_obj_properties(top_w, top_conf)
+            await add_widgets(top_w, top_conf)
+    if bottom_conf := config.get(CONF_BOTTOM_LAYER):
+        bottom_layer = lv_expr.display_get_layer_bottom(lv_component.get_disp())
+        with LocalVariable("bottom_layer", lv_obj_t, bottom_layer) as bottom_layer_obj:
+            bottom_w = Widget(bottom_layer_obj, layer_spec, bottom_conf)
+            await set_obj_properties(bottom_w, bottom_conf)
+            await add_widgets(bottom_w, bottom_conf)
 
 
 async def action_to_code(
@@ -143,26 +163,28 @@ async def obj_invalidate_to_code(config, action_id, template_arg, args):
     return await action_to_code(widgets, do_invalidate, action_id, template_arg, args)
 
 
+layer_spec = WidgetType(CONF_OBJ, lv_obj_t, (CONF_MAIN, CONF_SCROLLBAR))
+
+
 @automation.register_action(
     "lvgl.update",
     LvglAction,
-    part_schema(obj_spec)
+    part_schema(layer_spec)
     .extend(LVGL_SCHEMA)
     .extend(
         {
             cv.GenerateID(): cv.use_id(LvglComponent),
-            cv.Optional(CONF_TOP_LAYER): part_schema(obj_spec),
-            cv.Optional(CONF_BOTTOM_LAYER): part_schema(obj_spec),
+            cv.Optional(CONF_TOP_LAYER): part_schema(layer_spec),
+            cv.Optional(CONF_BOTTOM_LAYER): part_schema(layer_spec),
         }
     ),
 )
 async def lvgl_update_to_code(config, action_id, template_arg, args):
-    widgets = await get_widgets(config, CONF_LVGL_ID)
-    lv_component = widgets[0]
+    lv_component = await cg.get_variable(config[CONF_LVGL_ID])
     async with LambdaContext(LVGL_COMP_ARG, where=action_id) as context:
         await layers_to_code(lv_component, config)
     var = cg.new_Pvariable(action_id, template_arg, await context.get_lambda())
-    await cg.register_parented(var, lv_component.var)
+    await cg.register_parented(var, lv_component)
     return var
 
 
