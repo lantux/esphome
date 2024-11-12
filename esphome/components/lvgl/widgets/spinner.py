@@ -11,8 +11,8 @@ CONF_SPINNER = "spinner"
 
 SPINNER_SCHEMA = cv.Schema(
     {
-        cv.Required(CONF_ARC_LENGTH): angle,
-        cv.Required(CONF_SPIN_TIME): cv.positive_time_period_milliseconds,
+        cv.Optional(CONF_ARC_LENGTH,default=60): angle,
+        cv.Optional(CONF_SPIN_TIME, default="1000ms"): cv.positive_time_period_milliseconds,
     }
 )
 
