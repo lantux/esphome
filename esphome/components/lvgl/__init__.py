@@ -3,6 +3,7 @@ import logging
 from esphome.automation import build_automation, register_action, validate_automation
 import esphome.codegen as cg
 from esphome.components.display import Display
+from esphome.components.lvgl.widgets.scale import scale_spec
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_AUTO_CLEAR_ENABLED,
@@ -73,7 +74,8 @@ from .widgets.label import label_spec
 from .widgets.led import led_spec
 from .widgets.line import line_spec
 from .widgets.lv_bar import bar_spec
-from .widgets.meter import meter_spec
+
+# from .widgets.meter import meter_spec
 from .widgets.msgbox import MSGBOX_SCHEMA, msgboxes_to_code
 from .widgets.obj import obj_spec
 from .widgets.page import add_pages, generate_page_triggers, page_spec
@@ -109,7 +111,7 @@ for w_type in (
     switch_spec,
     tabview_spec,
     buttonmatrix_spec,
-    meter_spec,
+    # meter_spec,
     dropdown_spec,
     roller_spec,
     textarea_spec,
@@ -117,6 +119,7 @@ for w_type in (
     keyboard_spec,
     tileview_spec,
     qr_code_spec,
+    scale_spec,
 ):
     WIDGET_TYPES[w_type.name] = w_type
 
@@ -251,11 +254,6 @@ async def to_code(configs):
     for font in helpers.lv_fonts_used:
         add_define(f"LV_FONT_{font.upper()}")
 
-    if config_0[df.CONF_COLOR_DEPTH] == 16:
-        add_define(
-            "LV_COLOR_16_SWAP",
-            "1" if config_0[df.CONF_BYTE_ORDER] == "big_endian" else "0",
-        )
     add_define(
         "LV_COLOR_CHROMA_KEY",
         await lvalid.lv_color.process(config_0[df.CONF_TRANSPARENCY_KEY]),

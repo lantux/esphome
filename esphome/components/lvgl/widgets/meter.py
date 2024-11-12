@@ -1,5 +1,6 @@
 from esphome import automation
 import esphome.codegen as cg
+from esphome.components.lvgl.lv_validation import lv_fraction
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_COLOR,
@@ -17,14 +18,19 @@ from esphome.const import (
 
 from ..automation import action_to_code
 from ..defines import (
+    CONF_ANGLE_RANGE,
+    CONF_COLOR_END,
+    CONF_COLOR_START,
     CONF_END_VALUE,
     CONF_INDICATOR,
+    CONF_INDICATORS,
     CONF_MAIN,
     CONF_OPA,
     CONF_PIVOT_X,
     CONF_PIVOT_Y,
     CONF_SRC,
     CONF_START_VALUE,
+    CONF_STRIDE,
     CONF_TICKS,
 )
 from ..helpers import add_lv_use
@@ -41,28 +47,19 @@ from ..lv_validation import (
     size,
 )
 from ..lvcode import LocalVariable, lv, lv_assign, lv_expr, lv_obj
-from ..types import LvType, ObjUpdateAction
+from ..types import ObjUpdateAction
 from . import Widget, WidgetType, get_widgets
 from .arc import CONF_ARC
 from .img import CONF_IMAGE
 from .line import CONF_LINE
 from .obj import obj_spec
 
-CONF_ANGLE_RANGE = "angle_range"
-CONF_COLOR_END = "color_end"
-CONF_COLOR_START = "color_start"
-CONF_INDICATORS = "indicators"
-CONF_LABEL_GAP = "label_gap"
 CONF_MAJOR = "major"
+CONF_LABEL_GAP = "label_gap"
 CONF_METER = "meter"
 CONF_R_MOD = "r_mod"
 CONF_SCALES = "scales"
-CONF_STRIDE = "stride"
 CONF_TICK_STYLE = "tick_style"
-
-lv_meter_t = LvType("lv_meter_t")
-lv_meter_indicator_t = cg.global_ns.struct("lv_meter_indicator_t")
-lv_meter_indicator_t_ptr = lv_meter_indicator_t.operator("ptr")
 
 
 def pixels(value):
@@ -164,6 +161,7 @@ SCALE_SCHEMA = cv.Schema(
         cv.Optional(CONF_ANGLE_RANGE, default=270): cv.int_range(0, 360),
         cv.Optional(CONF_ROTATION): angle,
         cv.Optional(CONF_INDICATORS): cv.ensure_list(INDICATOR_SCHEMA),
+        cv.Optional(CONF_RADIUS, default="CIRCLE"): lv_fraction,
     }
 )
 
@@ -174,13 +172,16 @@ class MeterType(WidgetType):
     def __init__(self):
         super().__init__(
             CONF_METER,
-            lv_meter_t,
+            lv_scale_t,
             (CONF_MAIN, CONF_INDICATOR, CONF_TICKS, CONF_ITEMS),
             METER_SCHEMA,
         )
 
     async def to_code(self, w: Widget, config):
-        """For a meter object, create and set parameters"""
+        """For a meter object, create and set parameters
+        For LVGL 9 we emulate a meter using scale. Multiple scales in one meter will be handled by adding
+        subsequent scales to the first one as children aligned with CENTER.
+        """
 
         var = w.obj
         for scale_conf in config.get(CONF_SCALES, ()):
