@@ -495,6 +495,7 @@ CONF_PIVOT_Y = "pivot_y"
 CONF_PLACEHOLDER_TEXT = "placeholder_text"
 CONF_POINTS = "points"
 CONF_PREVIOUS = "previous"
+CONF_RADIUS = "radius"
 CONF_REPEAT_COUNT = "repeat_count"
 CONF_RECOLOR = "recolor"
 CONF_RESUME_ON_INPUT = "resume_on_input"
@@ -554,6 +555,16 @@ LV_KEYS = LvConstant(
     "PREV",
     "HOME",
     "END",
+)
+
+LV_SCALE_MODE = LvConstant(
+    "LV_SCALE_MODE_",
+    "HORIZONTAL_TOP",
+    "HORIZONTAL_BOTTOM",
+    "VERTICAL_LEFT",
+    "VERTICAL_RIGHT",
+    "ROUND_INNER",
+    "ROUND_OUTER",
 )
 
 

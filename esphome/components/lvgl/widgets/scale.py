@@ -1,7 +1,13 @@
-from esphome.components.lvgl.defines import CONF_STYLE
+from esphome.components.lvgl.defines import CONF_RADIUS, CONF_STYLE, LV_SCALE_MODE
 from esphome.components.lvgl.lvcode import lv
 import esphome.config_validation as cv
-from esphome.const import CONF_ITEMS, CONF_RANGE_FROM, CONF_RANGE_TO, CONF_ROTATION
+from esphome.const import (
+    CONF_ITEMS,
+    CONF_MODE,
+    CONF_RANGE_FROM,
+    CONF_RANGE_TO,
+    CONF_ROTATION,
+)
 
 from ..defines import CONF_ANGLE_RANGE, CONF_INDICATOR, CONF_MAIN
 from ..lv_validation import lv_bool
@@ -25,6 +31,13 @@ SECTION_SCHEMA = cv.Schema(
     }
 )
 
+
+def mode_check(config):
+    if CONF_RADIUS not in config and "ROUND" in config[CONF_MODE]:
+        config[CONF_RADIUS] = "LV_RADIUS_CIRCLE"
+    return config
+
+
 SCALE_SCHEMA = cv.Schema(
     {
         cv.Optional(CONF_RANGE_FROM, default=0.0): cv.float_,
@@ -36,8 +49,9 @@ SCALE_SCHEMA = cv.Schema(
         cv.Optional(CONF_TOTAL_TICK_COUNT, default=50): cv.int_range(1, 1000),
         cv.Optional(CONF_MAJOR_TICK_EVERY, default=10): cv.int_range(1, 1000),
         cv.Optional(CONF_SECTIONS): cv.ensure_list(SECTION_SCHEMA),
+        cv.Optional(CONF_MODE, default="HORIZONTAL_TOP"): LV_SCALE_MODE.one_of,
     }
-)
+).add_extra(mode_check)
 
 
 class ScaleType(WidgetType):
@@ -50,12 +64,17 @@ class ScaleType(WidgetType):
         )
 
     async def to_code(self, w: Widget, config):
-        await w.set_property(CONF_DRAW_TICKS_ON_TOP, config)
-        await w.set_property(CONF_ROTATION, config)
-        await w.set_property(CONF_ANGLE_RANGE, config)
-        await w.set_property(CONF_LABEL_SHOW, config)
-        await w.set_property(CONF_TOTAL_TICK_COUNT, config)
-        await w.set_property(CONF_MAJOR_TICK_EVERY, config)
+        mode = config[CONF_MODE]
+        for prop in (
+            CONF_ANGLE_RANGE,
+            CONF_ROTATION,
+            CONF_DRAW_TICKS_ON_TOP,
+            CONF_LABEL_SHOW,
+            CONF_TOTAL_TICK_COUNT,
+            CONF_MAJOR_TICK_EVERY,
+            CONF_MODE,
+        ):
+            await w.set_property(prop, config)
         lv.scale_set_range(w.obj, config[CONF_RANGE_FROM], config[CONF_RANGE_TO])
 
 
