@@ -3,6 +3,7 @@ import logging
 from esphome.automation import build_automation, register_action, validate_automation
 import esphome.codegen as cg
 from esphome.components.display import Display
+from esphome.components.lvgl.defines import CONF_BYTE_ORDER
 from esphome.components.lvgl.widgets.scale import scale_spec
 import esphome.config_validation as cv
 from esphome.const import (
@@ -309,6 +310,7 @@ async def to_code(configs):
 
         lv_scr_act = get_scr_act(lv_component)
         async with LvContext():
+            cg.add(lv_component.set_big_endian(config[CONF_BYTE_ORDER] == "big_endian"))
             await touchscreens_to_code(lv_component, config)
             await encoders_to_code(lv_component, config, default_group)
             await keypads_to_code(lv_component, config, default_group)
@@ -391,7 +393,7 @@ LVGL_SCHEMA = (
                 *df.LV_LOG_LEVELS, upper=True
             ),
             cv.Optional(df.CONF_BYTE_ORDER, default="big_endian"): cv.one_of(
-                "big_endian", "little_endian"
+                "big_endian", "little_endian", lower=True
             ),
             cv.Optional(df.CONF_STYLE_DEFINITIONS): cv.ensure_list(
                 cv.Schema({cv.Required(CONF_ID): cv.declare_id(lv_style_t)})

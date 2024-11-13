@@ -26,8 +26,6 @@ from ..defines import (
     CONF_STYLES,
     CONF_WIDGETS,
     OBJ_FLAGS,
-    PARTS,
-    STATES,
     TYPE_FLEX,
     TYPE_GRID,
     LValidator,
@@ -46,7 +44,7 @@ from ..lvcode import (
     lv_obj,
     lv_Pvariable,
 )
-from ..schemas import ALL_STYLES, STYLE_REMAP, WIDGET_TYPES
+from ..schemas import ALL_STYLES, WIDGET_TYPES, collect_parts
 from ..types import LV_STATE, LvType, WidgetType, lv_coord_t, lv_obj_t, lv_obj_t_ptr
 
 EVENT_LAMB = "event_lamb__"
@@ -263,51 +261,12 @@ async def wait_for_widgets():
     await FakeAwaitable(widgets_wait_generator())
 
 
-async def get_widgets(config: Union[dict, list], id: str = CONF_ID) -> list[Widget]:
+async def get_widgets(config: Union[dict, list], id_key: str = CONF_ID) -> list[Widget]:
     if not config:
         return []
     if not isinstance(config, list):
         config = [config]
-    return [await get_widget_(c[id]) for c in config if id in c]
-
-
-def collect_props(config):
-    """
-    Collect all properties from a configuration
-    :param config:
-    :return:
-    """
-    props = {}
-    for prop in [*ALL_STYLES, *OBJ_FLAGS, CONF_STYLES, CONF_GROUP]:
-        if prop in config:
-            props[prop] = config[prop]
-    return props
-
-
-def collect_states(config):
-    """
-    Collect prperties for each state of a widget
-    :param config:
-    :return:
-    """
-    states = {CONF_DEFAULT: collect_props(config)}
-    for state in STATES:
-        if state in config:
-            states[state] = collect_props(config[state])
-    return states
-
-
-def collect_parts(config):
-    """
-    Collect properties and states for all widget parts
-    :param config:
-    :return:
-    """
-    parts = {CONF_MAIN: collect_states(config)}
-    for part in PARTS:
-        if part in config:
-            parts[part] = collect_states(config[part])
-    return parts
+    return [await get_widget_(c[id_key]) for c in config if id_key in c]
 
 
 async def set_obj_properties(w: Widget, config):
@@ -362,8 +321,7 @@ async def set_obj_properties(w: Widget, config):
             }.items():
                 if isinstance(ALL_STYLES[prop], LValidator):
                     value = await ALL_STYLES[prop].process(value)
-                prop_r = STYLE_REMAP.get(prop, prop)
-                w.set_style(prop_r, value, lv_state)
+                w.set_style(prop, value, lv_state)
     if group := config.get(CONF_GROUP):
         group = await cg.get_variable(group)
         lv.group_add_obj(group, w.obj)

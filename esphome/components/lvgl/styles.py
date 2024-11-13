@@ -6,25 +6,33 @@ from esphome.cpp_generator import MockObj
 from .defines import CONF_STYLE_DEFINITIONS, CONF_THEME, LValidator, literal
 from .helpers import add_lv_use
 from .lvcode import LambdaContext, lv, lv_assign, lv_variable
-from .schemas import ALL_STYLES, STYLE_REMAP
+from .schemas import ALL_STYLES
 from .types import lv_lambda_t, lv_obj_t_ptr
 from .widgets import Widget, set_obj_properties, theme_widget_map
 from .widgets.obj import obj_spec
 
 
+def has_style_props(config) -> bool:
+    return any(prop in config for prop in ALL_STYLES)
+
+
+async def create_style(style, id_key=CONF_ID):
+    svar = cg.new_Pvariable(style[id_key])
+    lv.style_init(svar)
+    for prop, validator in ALL_STYLES.items():
+        if (value := style.get(prop)) is not None:
+            if isinstance(validator, LValidator):
+                value = await validator.process(value)
+            if isinstance(value, list):
+                value = "|".join(value)
+            lv.call(f"style_set_{prop}", svar, literal(value))
+    return svar
+
+
 async def styles_to_code(config):
     """Convert styles to C__ code."""
     for style in config.get(CONF_STYLE_DEFINITIONS, ()):
-        svar = cg.new_Pvariable(style[CONF_ID])
-        lv.style_init(svar)
-        for prop, validator in ALL_STYLES.items():
-            if (value := style.get(prop)) is not None:
-                if isinstance(validator, LValidator):
-                    value = await validator.process(value)
-                if isinstance(value, list):
-                    value = "|".join(value)
-                remapped_prop = STYLE_REMAP.get(prop, prop)
-                lv.call(f"style_set_{remapped_prop}", svar, literal(value))
+        await create_style(style)
 
 
 async def theme_to_code(config):

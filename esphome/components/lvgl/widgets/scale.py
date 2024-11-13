@@ -1,5 +1,4 @@
-from esphome.components.lvgl.defines import CONF_RADIUS, CONF_STYLE, LV_SCALE_MODE
-from esphome.components.lvgl.lvcode import lv
+import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ITEMS,
@@ -9,12 +8,24 @@ from esphome.const import (
     CONF_ROTATION,
 )
 
-from ..defines import CONF_ANGLE_RANGE, CONF_INDICATOR, CONF_MAIN
+from ..defines import (
+    CONF_ANGLE_RANGE,
+    CONF_INDICATOR,
+    CONF_MAIN,
+    CONF_RADIUS,
+    CONF_STYLE_ID,
+    LV_SCALE_MODE,
+    literal,
+)
 from ..lv_validation import lv_bool
+from ..lvcode import lv, lv_expr
+from ..schemas import STYLE_SCHEMA
+from ..styles import create_style, has_style_props
 from ..types import LvType, WidgetType, lv_style_t
 from . import Widget
 
 lv_scale_t = LvType("lv_scale_t")
+lv_scale_section_t = LvType("lv_scale_section_t")
 
 CONF_SCALE = "scale"
 CONF_DRAW_TICKS_ON_TOP = "draw_ticks_on_top"
@@ -22,12 +33,25 @@ CONF_LABEL_SHOW = "label_show"
 CONF_TOTAL_TICK_COUNT = "total_tick_count"
 CONF_MAJOR_TICK_EVERY = "major_tick_every"
 CONF_SECTIONS = "sections"
+CONF_SECTION_ID = "section_id"
 
-SECTION_SCHEMA = cv.Schema(
+STYLE_BASE = cv.Schema(
+    {cv.GenerateID(CONF_STYLE_ID): cv.declare_id(lv_style_t)}
+).extend(STYLE_SCHEMA)
+
+SCALE_STYLE_SCHEMA = STYLE_BASE.extend(
     {
+        cv.Optional(CONF_MAIN): STYLE_BASE,
+        cv.Optional(CONF_ITEMS): STYLE_BASE,
+        cv.Optional(CONF_INDICATOR): STYLE_BASE,
+    }
+)
+
+SECTION_SCHEMA = SCALE_STYLE_SCHEMA.extend(
+    {
+        cv.GenerateID(CONF_SECTION_ID): cv.declare_id(lv_scale_section_t),
         cv.Required(CONF_RANGE_FROM): cv.float_,
         cv.Required(CONF_RANGE_TO): cv.float_,
-        cv.Optional(CONF_STYLE): cv.use_id(lv_style_t),
     }
 )
 
@@ -48,8 +72,8 @@ SCALE_SCHEMA = cv.Schema(
         cv.Optional(CONF_LABEL_SHOW, default=True): lv_bool,
         cv.Optional(CONF_TOTAL_TICK_COUNT, default=50): cv.int_range(1, 1000),
         cv.Optional(CONF_MAJOR_TICK_EVERY, default=10): cv.int_range(1, 1000),
-        cv.Optional(CONF_SECTIONS): cv.ensure_list(SECTION_SCHEMA),
         cv.Optional(CONF_MODE, default="HORIZONTAL_TOP"): LV_SCALE_MODE.one_of,
+        cv.Optional(CONF_SECTIONS): cv.ensure_list(SECTION_SCHEMA),
     }
 ).add_extra(mode_check)
 
@@ -64,7 +88,6 @@ class ScaleType(WidgetType):
         )
 
     async def to_code(self, w: Widget, config):
-        mode = config[CONF_MODE]
         for prop in (
             CONF_ANGLE_RANGE,
             CONF_ROTATION,
@@ -76,6 +99,22 @@ class ScaleType(WidgetType):
         ):
             await w.set_property(prop, config)
         lv.scale_set_range(w.obj, config[CONF_RANGE_FROM], config[CONF_RANGE_TO])
+        for section in config.get(CONF_SECTIONS, ()):
+            svar = cg.Pvariable(
+                section[CONF_SECTION_ID], lv_expr.scale_add_section(w.obj)
+            )
+            lv.scale_section_set_range(
+                svar, section[CONF_RANGE_FROM], section[CONF_RANGE_TO]
+            )
+            if has_style_props(section):
+                sstyle = await create_style(section, CONF_STYLE_ID)
+                lv.scale_section_set_style(svar, literal("LV_PART_MAIN"), sstyle)
+            if items := section.get(CONF_ITEMS):
+                sstyle = await create_style(items, CONF_STYLE_ID)
+                lv.scale_section_set_style(svar, literal("LV_PART_ITEMS"), sstyle)
+            if indicator := section.get(CONF_INDICATOR):
+                sstyle = await create_style(indicator, CONF_STYLE_ID)
+                lv.scale_section_set_style(svar, literal("LV_PART_INDICATOR"), sstyle)
 
 
 scale_spec = ScaleType()

@@ -184,8 +184,6 @@ STYLE_PROPS = {
     "y": lvalid.pixels_or_percent,
 }
 
-STYLE_REMAP = {}
-
 # Complete object style schema
 STYLE_SCHEMA = cv.Schema({cv.Optional(k): v for k, v in STYLE_PROPS.items()}).extend(
     {
@@ -444,3 +442,42 @@ def any_widget_schema(extras=None):
     :return:
     """
     return cv.Any(dict(widget_schema(wt, extras) for wt in WIDGET_TYPES.values()))
+
+
+def collect_props(config):
+    """
+    Collect all properties from a configuration
+    :param config:
+    :return:
+    """
+    props = {}
+    for prop in [*ALL_STYLES, *df.OBJ_FLAGS, df.CONF_STYLES, CONF_GROUP]:
+        if prop in config:
+            props[prop] = config[prop]
+    return props
+
+
+def collect_states(config):
+    """
+    Collect prperties for each state of a widget
+    :param config:
+    :return:
+    """
+    states = {df.CONF_DEFAULT: collect_props(config)}
+    for state in df.STATES:
+        if state in config:
+            states[state] = collect_props(config[state])
+    return states
+
+
+def collect_parts(config):
+    """
+    Collect properties and states for all widget parts
+    :param config:
+    :return:
+    """
+    parts = {df.CONF_MAIN: collect_states(config)}
+    for part in df.PARTS:
+        if part in config:
+            parts[part] = collect_states(config[part])
+    return parts

@@ -59,7 +59,6 @@ CONF_LABEL_GAP = "label_gap"
 CONF_METER = "meter"
 CONF_R_MOD = "r_mod"
 CONF_SCALES = "scales"
-CONF_TICK_STYLE = "tick_style"
 
 
 def pixels(value):
