@@ -1,5 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
+from esphome.components.lvgl.schemas import STYLE_PROPS
 from esphome.const import (
     CONF_ITEMS,
     CONF_MODE,
@@ -54,6 +55,20 @@ SECTION_SCHEMA = SCALE_STYLE_SCHEMA.extend(
         cv.Required(CONF_RANGE_TO): cv.float_,
     }
 )
+
+LINE_STYLE = cv.Schema({
+    cv.Optional(k): STYLE_PROPS[k] for k in ("line_color", "line_width", "line_opa")
+})
+
+# Restricted sets of styles for each mode
+MODE_STYLE_SCHEMAS = {
+    "HORIZONTAL_TOP": SCALE_STYLE_SCHEMA,
+    "HORIZONTAL_BOTTOM": SCALE_STYLE_SCHEMA,
+    "VERTICAL_LEFT": SCALE_STYLE_SCHEMA,
+    "VERTICAL_RIGHT": SCALE_STYLE_SCHEMA,
+    "ROUND_INNER": SCALE_STYLE_SCHEMA,
+    "ROUND_OUTER": SCALE_STYLE_SCHEMA,
+}
 
 
 def mode_check(config):

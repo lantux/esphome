@@ -88,6 +88,7 @@ ENCODER_SCHEMA = cv.Schema(
 # All LVGL styles and their validators
 STYLE_PROPS = {
     "align": df.CHILD_ALIGNMENTS.one_of,
+    "arc_image_src": lvalid.lv_image,
     "arc_opa": lvalid.opacity,
     "arc_color": lvalid.lv_color,
     "arc_rounded": lvalid.lv_bool,
@@ -128,6 +129,7 @@ STYLE_PROPS = {
     "line_dash_gap": cv.positive_int,
     "line_rounded": lvalid.lv_bool,
     "line_color": lvalid.lv_color,
+    "line_opa": lvalid.opacity,
     "opa": lvalid.opacity,
     "opa_layered": lvalid.opacity,
     "outline_color": lvalid.lv_color,
