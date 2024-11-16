@@ -479,7 +479,20 @@ def collect_parts(config):
     :return:
     """
     parts = {df.CONF_MAIN: collect_states(config)}
+    result = {}
     for part in df.PARTS:
         if part in config:
             parts[part] = collect_states(config[part])
-    return parts
+    for part, states in parts.items():
+        part = "LV_PART_" + part.upper()
+        for state, props in states.items():
+            state = "LV_STATE_" + state.upper()
+            if state == "LV_STATE_DEFAULT":
+                lv_state = part
+            elif part == "LV_PART_MAIN":
+                lv_state = state
+            else:
+                lv_state = "((int)" + part + " |(int)" + state + ")"
+            result[lv_state] = props
+
+    return result

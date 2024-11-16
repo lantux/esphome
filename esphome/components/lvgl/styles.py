@@ -1,23 +1,22 @@
 import esphome.codegen as cg
 from esphome.const import CONF_ID
 from esphome.core import ID
-from esphome.cpp_generator import MockObj
 
 from .defines import CONF_STYLE_DEFINITIONS, CONF_THEME, LValidator, literal
 from .helpers import add_lv_use
-from .lvcode import LambdaContext, lv, lv_assign, lv_variable
-from .schemas import ALL_STYLES
-from .types import lv_lambda_t, lv_obj_t_ptr
-from .widgets import Widget, set_obj_properties, theme_widget_map
-from .widgets.obj import obj_spec
+from .lvcode import lv
+from .schemas import ALL_STYLES, collect_parts
+from .types import lv_style_t
+from .widgets import theme_widget_map
 
 
 def has_style_props(config) -> bool:
     return any(prop in config for prop in ALL_STYLES)
 
 
-async def create_style(style, id_key=CONF_ID):
-    svar = cg.new_Pvariable(style[id_key])
+async def create_style(style, id_name):
+    style_id = ID(id_name, True, lv_style_t)
+    svar = cg.new_Pvariable(style_id)
     lv.style_init(svar)
     for prop, validator in ALL_STYLES.items():
         if (value := style.get(prop)) is not None:
@@ -32,20 +31,17 @@ async def create_style(style, id_key=CONF_ID):
 async def styles_to_code(config):
     """Convert styles to C__ code."""
     for style in config.get(CONF_STYLE_DEFINITIONS, ()):
-        await create_style(style)
+        await create_style(style, style[CONF_ID].id)
 
 
 async def theme_to_code(config):
     if theme := config.get(CONF_THEME):
         add_lv_use(CONF_THEME)
         for w_name, style in theme.items():
-            if not isinstance(style, dict):
-                continue
-
-            lname = "lv_theme_apply_" + w_name
-            apply = lv_variable(lv_lambda_t, lname)
-            theme_widget_map[w_name] = apply
-            ow = Widget.create("obj", MockObj(ID("obj")), obj_spec)
-            async with LambdaContext([(lv_obj_t_ptr, "obj")], where=w_name) as context:
-                await set_obj_properties(ow, style)
-            lv_assign(apply, await context.get_lambda())
+            styles = {
+                part: await create_style(
+                    props, "_lv_theme_style_" + w_name + "_" + part
+                )
+                for part, props in collect_parts(style).items()
+            }
+            theme_widget_map[w_name] = styles

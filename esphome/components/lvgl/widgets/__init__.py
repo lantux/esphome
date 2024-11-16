@@ -6,10 +6,9 @@ from esphome.config_validation import Invalid
 from esphome.const import CONF_GROUP, CONF_ID, CONF_STATE, CONF_TYPE
 from esphome.core import ID, TimePeriod
 from esphome.coroutine import FakeAwaitable
-from esphome.cpp_generator import CallExpression, MockObj
+from esphome.cpp_generator import MockObj
 
 from ..defines import (
-    CONF_DEFAULT,
     CONF_FLEX_ALIGN_CROSS,
     CONF_FLEX_ALIGN_MAIN,
     CONF_FLEX_ALIGN_TRACK,
@@ -19,7 +18,6 @@ from ..defines import (
     CONF_GRID_ROW_ALIGN,
     CONF_GRID_ROWS,
     CONF_LAYOUT,
-    CONF_MAIN,
     CONF_PAD_COLUMN,
     CONF_PAD_ROW,
     CONF_SCROLLBAR_MODE,
@@ -84,10 +82,14 @@ class Widget:
         return w
 
     def add_state(self, state):
+        if "|" in state:
+            state = f"(lv_state_t)({state})"
         return lv_obj.add_state(self.obj, literal(state))
 
     def clear_state(self, state):
-        return lv_obj.clear_state(self.obj, literal(state))
+        if "|" in state:
+            state = f"(lv_state_t)({state})"
+        return lv_obj.remove_state(self.obj, literal(state))
 
     def has_state(self, state):
         return (lv_expr.obj_get_state(self.obj) & literal(state)) != 0
@@ -99,10 +101,14 @@ class Widget:
         return self.has_state(LV_STATE.CHECKED)
 
     def add_flag(self, flag):
+        if "|" in flag:
+            flag = f"(lv_obj_flag_t)({flag})"
         return lv_obj.add_flag(self.obj, literal(flag))
 
     def clear_flag(self, flag):
-        return lv_obj.clear_flag(self.obj, literal(flag))
+        if "|" in flag:
+            flag = f"(lv_obj_flag_t)({flag})"
+        return lv_obj.remove_flag(self.obj, literal(flag))
 
     async def set_property(self, prop, value, animated: bool = None, lv_name=None):
         """
@@ -304,28 +310,17 @@ async def set_obj_properties(w: Widget, config):
             track = literal(layout[CONF_FLEX_ALIGN_TRACK])
             lv_obj.set_flex_align(w.obj, main, cross, track)
     parts = collect_parts(config)
-    for part, states in parts.items():
-        part = "LV_PART_" + part.upper()
-        for state, props in states.items():
-            state = "LV_STATE_" + state.upper()
-            if state == "LV_STATE_DEFAULT":
-                lv_state = literal(part)
-            elif part == "LV_PART_MAIN":
-                lv_state = literal(state)
-            else:
-                lv_state = join_enums((state, part))
-            for style_id in props.get(CONF_STYLES, ()):
-                lv_obj.add_style(w.obj, MockObj(style_id), lv_state)
-            for prop, value in {
-                k: v for k, v in props.items() if k in ALL_STYLES
-            }.items():
-                if isinstance(ALL_STYLES[prop], LValidator):
-                    value = await ALL_STYLES[prop].process(value)
-                w.set_style(prop, value, lv_state)
+    for lv_state, props in parts.items():
+        for style_id in props.get(CONF_STYLES, ()):
+            lv_obj.add_style(w.obj, MockObj(style_id), literal(lv_state))
+        for prop, value in {k: v for k, v in props.items() if k in ALL_STYLES}.items():
+            if isinstance(ALL_STYLES[prop], LValidator):
+                value = await ALL_STYLES[prop].process(value)
+            w.set_style(prop, value, literal(lv_state))
     if group := config.get(CONF_GROUP):
         group = await cg.get_variable(group)
         lv.group_add_obj(group, w.obj)
-    props = parts[CONF_MAIN][CONF_DEFAULT]
+    props = parts.get("LV_PART_MAIN", {})
     lambs = {}
     flag_set = set()
     flag_clr = set()
@@ -414,7 +409,8 @@ async def widget_to_code(w_cnfig, w_type, parent):
 
     w = Widget.create(wid, var, spec, w_cnfig)
     if theme := theme_widget_map.get(w_type):
-        lv_add(CallExpression(theme, w.obj))
+        for part, style in theme.items():
+            lv.obj_add_style(w.obj, style, literal(part))
     await set_obj_properties(w, w_cnfig)
     await add_widgets(w, w_cnfig)
     await spec.to_code(w, w_cnfig)

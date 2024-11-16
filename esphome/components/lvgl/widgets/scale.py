@@ -1,6 +1,6 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components.lvgl.schemas import STYLE_PROPS
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_ITEMS,
     CONF_MODE,
@@ -56,9 +56,9 @@ SECTION_SCHEMA = SCALE_STYLE_SCHEMA.extend(
     }
 )
 
-LINE_STYLE = cv.Schema({
-    cv.Optional(k): STYLE_PROPS[k] for k in ("line_color", "line_width", "line_opa")
-})
+LINE_STYLE = cv.Schema(
+    {cv.Optional(k): STYLE_PROPS[k] for k in ("line_color", "line_width", "line_opa")}
+)
 
 # Restricted sets of styles for each mode
 MODE_STYLE_SCHEMAS = {
@@ -122,13 +122,13 @@ class ScaleType(WidgetType):
                 svar, section[CONF_RANGE_FROM], section[CONF_RANGE_TO]
             )
             if has_style_props(section):
-                sstyle = await create_style(section, CONF_STYLE_ID)
+                sstyle = await create_style(section, section[CONF_STYLE_ID])
                 lv.scale_section_set_style(svar, literal("LV_PART_MAIN"), sstyle)
             if items := section.get(CONF_ITEMS):
-                sstyle = await create_style(items, CONF_STYLE_ID)
+                sstyle = await create_style(items, section[CONF_STYLE_ID])
                 lv.scale_section_set_style(svar, literal("LV_PART_ITEMS"), sstyle)
             if indicator := section.get(CONF_INDICATOR):
-                sstyle = await create_style(indicator, CONF_STYLE_ID)
+                sstyle = await create_style(indicator, section[CONF_STYLE_ID])
                 lv.scale_section_set_style(svar, literal("LV_PART_INDICATOR"), sstyle)
 
 

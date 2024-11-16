@@ -96,7 +96,7 @@ class LvConstant(LValidator):
     def __init__(self, prefix: str, *choices, typename=None):
         self.prefix = prefix
         self.choices = choices
-        self.typename = typename
+        self.typename = typename or prefix.lower() + "t"
         prefixed_choices = [prefix + v for v in choices]
         prefixed_validator = cv.one_of(*prefixed_choices, upper=True)
 
@@ -578,6 +578,7 @@ def join_enums(enums, prefix=""):
     enums.sort()
     # If a prefix is provided, prepend each constant with the prefix, and assume that all the constants are within the
     # same namespace, otherwise cast to int to avoid triggering warnings about mixing enum types.
+
     if prefix:
         return literal("|".join(f"{prefix}{e.upper()}" for e in enums))
     return literal("|".join(f"(int){e.upper()}" for e in enums))

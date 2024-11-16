@@ -25,6 +25,7 @@ from esphome.const import (
     CONF_URL,
 )
 from esphome.core import CORE, HexInt
+from esphome.final_validate import full_config
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ IMAGE_TYPE = {
 }
 
 CONF_USE_TRANSPARENCY = "use_transparency"
+CONF_BYTE_ORDER = "byte_order"
 
 # If the MDI file cannot be downloaded within this time, abort.
 IMAGE_DOWNLOAD_TIMEOUT = 30  # seconds
@@ -203,6 +205,9 @@ TYPED_FILE_SCHEMA = cv.typed_schema(
     key=CONF_SOURCE,
 )
 
+LITTLE_ENDIAN = "little_endian"
+BIG_ENDIAN = "big_endian"
+
 
 def _file_schema(value):
     if isinstance(value, str):
@@ -227,6 +232,9 @@ IMAGE_SCHEMA = cv.Schema(
             cv.Optional(CONF_DITHER, default="NONE"): cv.one_of(
                 "NONE", "FLOYDSTEINBERG", upper=True
             ),
+            cv.Optional(CONF_BYTE_ORDER): cv.one_of(
+                LITTLE_ENDIAN, BIG_ENDIAN, lower=True
+            ),
             cv.GenerateID(CONF_RAW_DATA_ID): cv.declare_id(cg.uint8),
         },
         validate_cross_dependencies,
@@ -234,6 +242,15 @@ IMAGE_SCHEMA = cv.Schema(
 )
 
 CONFIG_SCHEMA = cv.All(font.validate_pillow_installed, IMAGE_SCHEMA)
+
+
+def final_validate(config):
+    if "lvgl" in full_config.get() and CONF_BYTE_ORDER not in config:
+        config[CONF_BYTE_ORDER] = LITTLE_ENDIAN
+    return config
+
+
+FINAL_VALIDATE_SCHEMA = final_validate
 
 
 def load_svg_image(file: bytes, resize: tuple[int, int]):
@@ -261,6 +278,7 @@ async def to_code(config):
     # Local import only to allow "validate_pillow_installed" to run *before* importing it
     from PIL import Image
 
+    # LVGL requires RGB565 to be little endian. Check if it is in the config'
     conf_file = config[CONF_FILE]
 
     if conf_file[CONF_SOURCE] == SOURCE_LOCAL:
@@ -283,6 +301,7 @@ async def to_code(config):
 
     file_type = puremagic.from_string(file_contents, mime=True)
 
+    little_endian = config.get(CONF_BYTE_ORDER) == LITTLE_ENDIAN
     resize = config.get(CONF_RESIZE)
     if "svg" in file_type:
         image = load_svg_image(file_contents, resize)
@@ -363,31 +382,34 @@ async def to_code(config):
         pixels = list(image.getdata())
         bytes_per_pixel = 3 if transparent else 2
         data = [0 for _ in range(height * width * bytes_per_pixel)]
+        alpha_offset = height * width * 2
         pos = 0
         for r, g, b, a in pixels:
             R = r >> 3
             G = g >> 2
             B = b >> 3
             rgb = (R << 11) | (G << 5) | B
-            data[pos] = rgb >> 8
-            pos += 1
-            data[pos] = rgb & 0xFF
-            pos += 1
+            if little_endian:
+                data[pos * 2] = rgb & 0xFF
+                data[pos * 2 + 1] = rgb >> 8
+            else:
+                data[pos * 2] = rgb >> 8
+                data[pos * 2 + 1] = rgb & 0xFF
             if transparent:
-                data[pos] = a
-                pos += 1
+                data[pos + alpha_offset] = a
+            pos += 1
 
     elif config[CONF_TYPE] in ["BINARY", "TRANSPARENT_BINARY"]:
+        alpha = image.split()[-1]
         if transparent:
-            alpha = image.split()[-1]
-            has_alpha = alpha.getextrema()[0] < 0xFF
-            _LOGGER.debug("%s Has alpha: %s", config[CONF_ID], has_alpha)
+            transparent = alpha.getextrema()[0] < 0xFF
+            _LOGGER.debug("%s Has alpha: %s", config[CONF_ID], transparent)
         image = image.convert("1", dither=dither)
         width8 = ((width + 7) // 8) * 8
         data = [0 for _ in range(height * width8 // 8)]
         for y in range(height):
             for x in range(width):
-                if transparent and has_alpha:
+                if transparent:
                     a = alpha.getpixel((x, y))
                     if not a:
                         continue

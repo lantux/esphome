@@ -8,6 +8,8 @@ static const uint8_t opa4_table[16] = {0, 17, 34, 51, 68, 85, 102, 119, 136, 153
 
 static const uint8_t opa2_table[4] = {0, 85, 170, 255};
 
+static const char *TAG = "lvgl.font";
+
 static const void *get_glyph_bitmap(lv_font_glyph_dsc_t *dsc, lv_draw_buf_t *draw_buf) {
   const auto font = dsc->resolved_font;
   auto *const fe = (FontEngine *) font->dsc;
@@ -22,44 +24,64 @@ static const void *get_glyph_bitmap(lv_font_glyph_dsc_t *dsc, lv_draw_buf_t *dra
   int32_t x, y;
   uint32_t stride = lv_draw_buf_width_to_stride(gd->width, LV_COLOR_FORMAT_A8);
 
-  if (fe->bpp == 1) {
-    for (y = 0; y != gd->height; y++) {
-      for (x = 0; x != gd->width; x++) {
-        bitmap_out_tmp[x] = ((*bitmap_in++) << (x & 7) & 0x80) ? 0xff : 0x00;
-      }
-      bitmap_out_tmp += stride;
-    }
-  } else if (fe->bpp == 2) {
-    for (y = 0; y < gd->height; y++) {
-      for (x = 0; x < gd->width; x++, i++) {
-        i = i & 0x3;
-        if (i == 0)
-          bitmap_out_tmp[x] = opa2_table[(*bitmap_in) >> 6];
-        else if (i == 1)
-          bitmap_out_tmp[x] = opa2_table[((*bitmap_in) >> 4) & 0x3];
-        else if (i == 2)
-          bitmap_out_tmp[x] = opa2_table[((*bitmap_in) >> 2) & 0x3];
-        else if (i == 3) {
-          bitmap_out_tmp[x] = opa2_table[((*bitmap_in) >> 0) & 0x3];
-          bitmap_in++;
+  switch (fe->bpp) {
+    case 1: {
+      uint8_t mask = 0;
+      uint8_t byte = 0;
+      for (y = 0; y != gd->height; y++) {
+        for (x = 0; x != gd->width; x++) {
+          if (mask == 0) {
+            mask = 0x80;
+            byte = *bitmap_in++;
+          }
+          bitmap_out_tmp[x] = byte & mask ? 255 : 0;
+          mask >>= 1;
         }
+        bitmap_out_tmp += stride;
       }
-      bitmap_out_tmp += stride;
-    }
+    } break;
 
-  } else if (fe->bpp == 4) {
-    for (y = 0; y < gd->height; y++) {
-      for (x = 0; x < gd->width; x++, i++) {
-        i = i & 0x1;
-        if (i == 0) {
-          bitmap_out_tmp[x] = opa4_table[(*bitmap_in) >> 4];
-        } else if (i == 1) {
-          bitmap_out_tmp[x] = opa4_table[(*bitmap_in) & 0xF];
-          bitmap_in++;
+    case 2:
+      for (y = 0; y != gd->height; y++) {
+        for (x = 0; x != gd->width; x++, i++) {
+          i = i & 0x3;
+          if (i == 0)
+            bitmap_out_tmp[x] = opa2_table[(*bitmap_in) >> 6];
+          else if (i == 1)
+            bitmap_out_tmp[x] = opa2_table[((*bitmap_in) >> 4) & 0x3];
+          else if (i == 2)
+            bitmap_out_tmp[x] = opa2_table[((*bitmap_in) >> 2) & 0x3];
+          else if (i == 3) {
+            bitmap_out_tmp[x] = opa2_table[((*bitmap_in) >> 0) & 0x3];
+            bitmap_in++;
+          }
         }
+        bitmap_out_tmp += stride;
       }
-      bitmap_out_tmp += stride;
-    }
+
+      break;
+
+    case 4:
+      for (y = 0; y != gd->height; y++) {
+        for (x = 0; x != gd->width; x++, i++) {
+          i = i & 0x1;
+          if (i == 0) {
+            bitmap_out_tmp[x] = opa4_table[(*bitmap_in) >> 4];
+          } else if (i == 1) {
+            bitmap_out_tmp[x] = opa4_table[(*bitmap_in) & 0xF];
+            bitmap_in++;
+          }
+        }
+        bitmap_out_tmp += stride;
+      }
+      break;
+
+    case 8:
+      memcpy(bitmap_out_tmp, bitmap_in, gd->width * gd->height);
+      break;
+    default:
+      ESP_LOGD(TAG, "Unknown bpp: %d", fe->bpp);
+      break;
   }
   return draw_buf;
 }

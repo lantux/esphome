@@ -91,22 +91,32 @@ lv_img_dsc_t *Image::get_lv_img_dsc() {
     switch (this->get_type()) {
       case IMAGE_TYPE_BINARY:
         this->dsc_.header.cf = LV_COLOR_FORMAT_A1;
+        this->dsc_.header.stride = this->width_ / 8;
         break;
 
       case IMAGE_TYPE_GRAYSCALE:
         this->dsc_.header.cf = LV_COLOR_FORMAT_A8;
+        this->dsc_.header.stride = this->width_;
         break;
 
       case IMAGE_TYPE_RGB24:
         this->dsc_.header.cf = LV_COLOR_FORMAT_RGB888;
+        this->dsc_.header.stride = this->width_ * 3;
         break;
 
       case IMAGE_TYPE_RGB565:
-        this->dsc_.header.cf = this->has_transparency() ? LV_COLOR_FORMAT_RGB565A8 : LV_COLOR_FORMAT_RGB565;
+        if (this->has_transparency()) {
+          this->dsc_.header.cf = LV_COLOR_FORMAT_RGB565A8;
+          this->dsc_.header.stride = this->width_ * 2;
+        } else {
+          this->dsc_.header.cf = LV_COLOR_FORMAT_RGB565;
+          this->dsc_.header.stride = this->width_ * 2;
+        }
         break;
 
       case IMAGE_TYPE_RGBA:
         this->dsc_.header.cf = LV_COLOR_FORMAT_ARGB8888;
+        this->dsc_.header.stride = this->width_ * 4;
         break;
     }
   }
