@@ -124,9 +124,9 @@ STYLE_PROPS = {
     "height": lvalid.size,
     "image_recolor": lvalid.lv_color,
     "image_recolor_opa": lvalid.opacity,
-    "line_width": cv.positive_int,
-    "line_dash_width": cv.positive_int,
-    "line_dash_gap": cv.positive_int,
+    "line_width": lvalid.lv_positive_int,
+    "line_dash_width": lvalid.lv_positive_int,
+    "line_dash_gap": lvalid.lv_positive_int,
     "line_rounded": lvalid.lv_bool,
     "line_color": lvalid.lv_color,
     "line_opa": lvalid.opacity,
@@ -159,8 +159,8 @@ STYLE_PROPS = {
         typename="lv_text_decor_t",
     ).several_of,
     "text_font": lv_font,
-    "text_letter_space": cv.positive_int,
-    "text_line_space": cv.positive_int,
+    "text_letter_space": lvalid.lv_positive_int,
+    "text_line_space": lvalid.lv_positive_int,
     "text_opa": lvalid.opacity,
     "transform_angle": cv.invalid("Use transform_rotation instead"),
     "transform_height": lvalid.pixels_or_percent,
@@ -300,7 +300,7 @@ def grid_free_space(value):
     value = cv.Upper(value)
     if value.startswith("FR(") and value.endswith(")"):
         value = value.removesuffix(")").removeprefix("FR(")
-        return f"LV_GRID_FR({cv.positive_int(value)})"
+        return f"LV_GRID_FR({lvalid.lv_positive_int(value)})"
     raise cv.Invalid("must be a size in pixels, CONTENT or FR(nn)")
 
 
@@ -339,10 +339,10 @@ LAYOUT_SCHEMA = {
 }
 
 GRID_CELL_SCHEMA = {
-    cv.Required(df.CONF_GRID_CELL_ROW_POS): cv.positive_int,
-    cv.Required(df.CONF_GRID_CELL_COLUMN_POS): cv.positive_int,
-    cv.Optional(df.CONF_GRID_CELL_ROW_SPAN, default=1): cv.positive_int,
-    cv.Optional(df.CONF_GRID_CELL_COLUMN_SPAN, default=1): cv.positive_int,
+    cv.Required(df.CONF_GRID_CELL_ROW_POS): lvalid.lv_positive_int,
+    cv.Required(df.CONF_GRID_CELL_COLUMN_POS): lvalid.lv_positive_int,
+    cv.Optional(df.CONF_GRID_CELL_ROW_SPAN, default=1): lvalid.lv_positive_int,
+    cv.Optional(df.CONF_GRID_CELL_COLUMN_SPAN, default=1): lvalid.lv_positive_int,
     cv.Optional(df.CONF_GRID_CELL_X_ALIGN): grid_alignments,
     cv.Optional(df.CONF_GRID_CELL_Y_ALIGN): grid_alignments,
 }

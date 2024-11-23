@@ -10,7 +10,6 @@ from esphome import codegen as cg, config_validation as cv
 from esphome.const import CONF_ITEMS
 from esphome.core import Lambda
 from esphome.cpp_generator import Expression, LambdaExpression, MockObj, SafeExpType
-from esphome.cpp_types import uint32
 from esphome.schema_extractors import SCHEMA_EXTRACT, schema_extractor
 
 from .helpers import requires_component
@@ -59,11 +58,14 @@ class LValidator:
     has `process()` to convert a value during code generation
     """
 
-    def __init__(self, validator, rtype, retmapper=None, requires=None):
+    def __init__(
+        self, validator, rtype, retmapper=None, requires=None, animatable=False
+    ):
         self.validator = validator
         self.rtype = rtype
         self.retmapper = retmapper
         self.requires = requires
+        self.animatable = animatable
 
     def __call__(self, value):
         if self.requires:
@@ -72,15 +74,14 @@ class LValidator:
             return cv.returning_lambda(value)
         return self.validator(value)
 
-    async def process(self, value, args=()):
+    async def process(self, value, args=(), raw_lambda=False):
         if value is None:
             return None
         if isinstance(value, Lambda):
-            return cg.RawExpression(
-                call_lambda(
-                    await cg.process_lambda(value, args, return_type=self.rtype)
-                )
-            )
+            lamb = await cg.process_lambda(value, args, return_type=self.rtype)
+            if raw_lambda:
+                return lamb
+            return cg.RawExpression(call_lambda(lamb))
         if self.retmapper is not None:
             return self.retmapper(value)
         return cg.safe_exp(value)
@@ -108,11 +109,11 @@ class LvConstant(LValidator):
                 return prefixed_validator(value)
             return self.prefix + cv.one_of(*choices, upper=True)(value)
 
-        super().__init__(validator, rtype=uint32)
+        super().__init__(validator, rtype=cg.uint32)
         self.retmapper = self.mapper
-        self.one_of = LValidator(validator, uint32, retmapper=self.mapper)
+        self.one_of = LValidator(validator, cg.uint32, retmapper=self.mapper)
         self.several_of = LValidator(
-            cv.ensure_list(self.one_of), uint32, retmapper=self.mapper
+            cv.ensure_list(self.one_of), cg.uint32, retmapper=self.mapper
         )
 
     def mapper(self, value):
@@ -410,6 +411,7 @@ CONF_ALIGN_TO = "align_to"
 CONF_ANGLE_RANGE = "angle_range"
 CONF_ANIMATED = "animated"
 CONF_ANIMATION = "animation"
+CONF_ANIMATIONS = "animations"
 CONF_ANTIALIAS = "antialias"
 CONF_ARC_LENGTH = "arc_length"
 CONF_AUTO_START = "auto_start"

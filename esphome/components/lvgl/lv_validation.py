@@ -46,7 +46,7 @@ def opacity_validator(value):
     return value
 
 
-opacity = LValidator(opacity_validator, uint32, retmapper=literal)
+opacity = LValidator(opacity_validator, uint32, retmapper=literal, animatable=True)
 
 COLOR_NAMES = {
     "aliceblue": 0xF0F8FF,
@@ -209,23 +209,29 @@ def color(value):
     )
 
 
-def color_retmapper(value):
-    if isinstance(value, cv.Lambda):
-        return cv.returning_lambda(value)
+def get_component_colors(value):
     if isinstance(value, str) and value in COLOR_NAMES:
         value = COLOR_NAMES[value]
     if isinstance(value, int):
-        return literal(
-            f"lv_color_make({(value >> 16) & 0xFF}, {(value >> 8) & 0xFF}, {value & 0xFF})"
-        )
+        return value >> 16, value >> 8 & 0xFF, value & 0xFF
     if isinstance(value, ID):
         cval = [x for x in CORE.config[CONF_COLOR] if x[CONF_ID] == value][0]
         if CONF_HEX in cval:
             r, g, b = cval[CONF_HEX]
         else:
             r, g, b, _ = from_rgbw(cval)
-        return literal(f"lv_color_make({r}, {g}, {b})")
+        return r, g, b
     assert False
+
+
+def color_retmapper(value):
+    if isinstance(value, cv.Lambda):
+        return cv.returning_lambda(value)
+    r, g, b = get_component_colors(value)
+    return literal(f"lv_color_make({r}, {g}, {b})")
+
+
+lv_color = LValidator(color, ty.lv_color_t, retmapper=color_retmapper, animatable=True)
 
 
 def option_string(value):
@@ -233,9 +239,6 @@ def option_string(value):
     if value.find("\n") != -1:
         raise cv.Invalid("Options strings must not contain newlines")
     return value
-
-
-lv_color = LValidator(color, ty.lv_color_t, retmapper=color_retmapper)
 
 
 def pixels_or_percent_validator(value):
@@ -250,7 +253,9 @@ def pixels_or_percent_validator(value):
     return f"lv_pct({int(value * 100)})"
 
 
-pixels_or_percent = LValidator(pixels_or_percent_validator, uint32, retmapper=literal)
+pixels_or_percent = LValidator(
+    pixels_or_percent_validator, uint32, retmapper=literal, animatable=True
+)
 
 
 def zoom(value):
@@ -267,7 +272,7 @@ def angle(value):
     return int(cv.float_range(0.0, 360.0)(cv.angle(value)) * 10)
 
 
-lv_angle = LValidator(angle, uint32)
+lv_angle = LValidator(angle, uint32, animatable=True)
 
 
 @schema_extractor("one_of")
@@ -291,7 +296,7 @@ def pixels_validator(value):
     return cv.int_(value)
 
 
-pixels = LValidator(pixels_validator, uint32, retmapper=literal)
+pixels = LValidator(pixels_validator, uint32, retmapper=literal, animatable=True)
 
 radius_consts = LvConstant("LV_RADIUS_", "CIRCLE")
 
@@ -364,7 +369,7 @@ class TextValidator(LValidator):
             return value
         return super().__call__(value)
 
-    async def process(self, value, args=()):
+    async def process(self, value, args=(), raw_lambda=False):
         if isinstance(value, dict):
             if format_str := value.get(CONF_FORMAT):
                 args = [str(x) for x in value[CONF_ARGS]]
@@ -403,9 +408,11 @@ class TextValidator(LValidator):
 
 lv_text = TextValidator()
 lv_float = LValidator(cv.float_, cg.float_)
-lv_int = LValidator(cv.int_, cg.int_)
-lv_positive_int = LValidator(cv.positive_int, cg.int_)
-lv_brightness = LValidator(cv.percentage, cg.float_, retmapper=lambda x: int(x * 255))
+lv_int = LValidator(cv.int_, cg.int_, animatable=True)
+lv_positive_int = LValidator(cv.positive_int, cg.int_, animatable=True)
+lv_brightness = LValidator(
+    cv.percentage, cg.float_, retmapper=lambda x: int(x * 255), animatable=True
+)
 
 
 def gradient_mapper(value):
@@ -445,7 +452,7 @@ class LvFont(LValidator):
 
         super().__init__(validator, lv_font_t)
 
-    async def process(self, value, args=()):
+    async def process(self, value, args=(), raw_lambda=False):
         if is_lv_font(value):
             return literal(f"&lv_font_{value}")
         return literal(f"{value}_engine->get_lv_font()")

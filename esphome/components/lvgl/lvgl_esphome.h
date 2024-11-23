@@ -20,6 +20,8 @@
 #include "esphome/components/display/display_color_utils.h"
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
+
+#include <list>
 #include <lvgl.h>
 #include <map>
 #include <utility>
