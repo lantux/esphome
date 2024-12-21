@@ -10,7 +10,6 @@ import puremagic
 
 from esphome import core, external_files
 import esphome.codegen as cg
-from esphome.components import font
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_DITHER,
@@ -241,7 +240,7 @@ IMAGE_SCHEMA = cv.Schema(
     )
 )
 
-CONFIG_SCHEMA = cv.All(font.validate_pillow_installed, IMAGE_SCHEMA)
+CONFIG_SCHEMA = IMAGE_SCHEMA
 
 
 def final_validate(config):

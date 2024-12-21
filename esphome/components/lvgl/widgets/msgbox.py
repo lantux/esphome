@@ -1,7 +1,7 @@
 from esphome import config_validation as cv
 from esphome.components.lvgl.schemas import TEXT_SCHEMA
 from esphome.components.lvgl.types import WidgetType
-from esphome.components.lvgl.widgets import widget_to_code
+from esphome.components.lvgl.widgets import add_widgets, widget_to_code
 from esphome.const import CONF_BUTTON, CONF_ID, CONF_TEXT
 from esphome.cpp_generator import MockObjClass
 from esphome.cpp_types import nullptr
@@ -138,6 +138,7 @@ async def msgbox_to_code(top_layer, conf):
     lv.msgbox_add_text(msgbox, text)
     lv_obj.set_style_align(msgbox, literal("LV_ALIGN_CENTER"), 0)
     await set_obj_properties(msgbox_widget, conf)
+    await add_widgets(msgbox_widget, conf)
     for button in conf.get(CONF_BUTTONS, ()):
         await widget_to_code(button, footer_button_spec, msgbox)
     for button in conf.get(CONF_HEADER_BUTTONS, ()):
