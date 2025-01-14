@@ -556,18 +556,14 @@ void *lv_malloc_core(size_t size) {
 }
 
 void lv_free_core(void *ptr) {
-#ifdef ESPHOME_LOG_HAS_VERBOSE
   ESP_LOGV(esphome::lvgl::TAG, "free %p", ptr);
-#endif
   if (ptr == nullptr)
     return;
   heap_caps_free(ptr);
 }
 
 void *lv_realloc_core(void *ptr, size_t size) {
-#ifdef ESPHOME_LOG_HAS_VERBOSE
   ESP_LOGV(esphome::lvgl::TAG, "realloc %p: %zu", ptr, size);
-#endif
   return heap_caps_realloc(ptr, size, cap_bits);
 }
 #endif
