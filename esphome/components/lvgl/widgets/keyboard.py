@@ -7,6 +7,7 @@ from ..defines import CONF_MAIN, KEYBOARD_MODES, literal
 from ..helpers import add_lv_use, lvgl_components_required
 from ..types import LvCompound, LvType
 from . import Widget, WidgetType, get_widgets
+from .label import CONF_LABEL
 from .textarea import CONF_TEXTAREA, lv_textarea_t
 
 CONF_KEYBOARD = "keyboard"
@@ -35,7 +36,7 @@ class KeyboardType(WidgetType):
         )
 
     def get_uses(self):
-        return CONF_KEYBOARD, CONF_TEXTAREA
+        return CONF_KEYBOARD, CONF_TEXTAREA, CONF_LABEL
 
     async def to_code(self, w: Widget, config: dict):
         lvgl_components_required.add("KEY_LISTENER")
