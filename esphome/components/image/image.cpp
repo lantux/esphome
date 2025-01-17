@@ -91,55 +91,39 @@ lv_img_dsc_t *Image::get_lv_img_dsc() {
   // lazily construct lvgl image_dsc.
   if (this->dsc_.data != this->data_start_) {
     this->dsc_.data = this->data_start_;
-    this->dsc_.header.always_zero = 0;
-    this->dsc_.header.reserved = 0;
+    this->dsc_.header.magic = LV_IMAGE_HEADER_MAGIC;
     this->dsc_.header.w = this->width_;
     this->dsc_.header.h = this->height_;
     this->dsc_.data_size = this->get_width_stride() * this->get_height();
     switch (this->get_type()) {
       case IMAGE_TYPE_BINARY:
-        this->dsc_.header.cf = LV_IMG_CF_ALPHA_1BIT;
+        this->dsc_.header.cf = LV_COLOR_FORMAT_A1;
+        this->dsc_.header.stride = this->width_ / 8;
         break;
 
       case IMAGE_TYPE_GRAYSCALE:
-        this->dsc_.header.cf = LV_IMG_CF_ALPHA_8BIT;
+        this->dsc_.header.cf = LV_COLOR_FORMAT_A8;
+        this->dsc_.header.stride = this->width_;
         break;
 
       case IMAGE_TYPE_RGB:
-#if LV_COLOR_DEPTH == 32
-        switch (this->transparent_) {
-          case TRANSPARENCY_ALPHA_CHANNEL:
-            this->dsc_.header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA;
-            break;
-          case TRANSPARENCY_CHROMA_KEY:
-            this->dsc_.header.cf = LV_IMG_CF_TRUE_COLOR_CHROMA_KEYED;
-            break;
-          default:
-            this->dsc_.header.cf = LV_IMG_CF_TRUE_COLOR;
-            break;
+        if (this->has_transparency()) {
+          this->dsc_.header.cf = LV_COLOR_FORMAT_ARGB8888;
+          this->dsc_.header.stride = this->width_ * 4;
+        } else {
+          this->dsc_.header.cf = LV_COLOR_FORMAT_RGB888;
+          this->dsc_.header.stride = this->width_ * 3;
         }
-#else
-        this->dsc_.header.cf =
-            this->transparency_ == TRANSPARENCY_ALPHA_CHANNEL ? LV_IMG_CF_RGBA8888 : LV_IMG_CF_RGB888;
-#endif
         break;
 
       case IMAGE_TYPE_RGB565:
-#if LV_COLOR_DEPTH == 16
-        switch (this->transparency_) {
-          case TRANSPARENCY_ALPHA_CHANNEL:
-            this->dsc_.header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA;
-            break;
-          case TRANSPARENCY_CHROMA_KEY:
-            this->dsc_.header.cf = LV_IMG_CF_TRUE_COLOR_CHROMA_KEYED;
-            break;
-          default:
-            this->dsc_.header.cf = LV_IMG_CF_TRUE_COLOR;
-            break;
+        if (this->has_transparency()) {
+          this->dsc_.header.cf = LV_COLOR_FORMAT_RGB565A8;
+          this->dsc_.header.stride = this->width_ * 2;
+        } else {
+          this->dsc_.header.cf = LV_COLOR_FORMAT_RGB565;
+          this->dsc_.header.stride = this->width_ * 2;
         }
-#else
-        this->dsc_.header.cf = this->transparent_ == TRANSPARENCY_ALPHA_CHANNEL ? LV_IMG_CF_RGB565A8 : LV_IMG_CF_RGB565;
-#endif
         break;
     }
   }

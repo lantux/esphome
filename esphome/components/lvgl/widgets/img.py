@@ -10,7 +10,6 @@ from ..defines import (
     CONF_PIVOT_Y,
     CONF_SRC,
     CONF_ZOOM,
-    LvConstant,
 )
 from ..lv_validation import angle, lv_bool, lv_image, size, zoom
 from ..lvcode import lv
@@ -29,9 +28,6 @@ BASE_IMG_SCHEMA = cv.Schema(
         cv.Optional(CONF_OFFSET_X): size,
         cv.Optional(CONF_OFFSET_Y): size,
         cv.Optional(CONF_ANTIALIAS): lv_bool,
-        cv.Optional(CONF_MODE): LvConstant(
-            "LV_IMG_SIZE_MODE_", "VIRTUAL", "REAL"
-        ).one_of,
     }
 )
 

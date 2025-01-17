@@ -50,7 +50,7 @@ using lv_color_data = uint32_t;
 
 extern lv_event_code_t lv_api_event;     // NOLINT
 extern lv_event_code_t lv_update_event;  // NOLINT
-extern std::string lv_event_code_name_for(uint8_t event_code);
+extern std::string lv_event_code_name_for(lv_event_t *event);
 #if LV_COLOR_DEPTH == 16
 static const display::ColorBitness LV_BITNESS = display::ColorBitness::COLOR_BITNESS_565;
 #elif LV_COLOR_DEPTH == 32
@@ -65,19 +65,10 @@ static const display::ColorBitness LV_BITNESS = display::ColorBitness::COLOR_BIT
 inline void lv_img_set_src(lv_obj_t *obj, esphome::image::Image *image) {
   lv_img_set_src(obj, image->get_lv_img_dsc());
 }
-inline void lv_disp_set_bg_image(lv_disp_t *disp, esphome::image::Image *image) {
-  lv_disp_set_bg_image(disp, image->get_lv_img_dsc());
-}
 
 inline void lv_obj_set_style_bg_img_src(lv_obj_t *obj, esphome::image::Image *image, lv_style_selector_t selector) {
   lv_obj_set_style_bg_img_src(obj, image->get_lv_img_dsc(), selector);
 }
-#ifdef USE_LVGL_METER
-inline lv_meter_indicator_t *lv_meter_add_needle_img(lv_obj_t *obj, lv_meter_scale_t *scale, esphome::image::Image *src,
-                                                     lv_coord_t pivot_x, lv_coord_t pivot_y) {
-  return lv_meter_add_needle_img(obj, scale, src->get_lv_img_dsc(), pivot_x, pivot_y);
-}
-#endif  // USE_LVGL_METER
 #endif  // USE_LVGL_IMAGE
 #ifdef USE_LVGL_ANIMIMG
 inline void lv_animimg_set_src(lv_obj_t *img, std::vector<image::Image *> images) {
@@ -123,7 +114,7 @@ class LvPageType : public Parented<LvglComponent> {
 
 using LvLambdaType = std::function<void(lv_obj_t *)>;
 using set_value_lambda_t = std::function<void(float)>;
-using event_callback_t = void(_lv_event_t *);
+using event_callback_t = void(lv_event_t *);
 using text_lambda_t = std::function<const char *()>;
 
 template<typename... Ts> class ObjUpdateAction : public Action<Ts...> {

@@ -162,7 +162,7 @@ lvgl:
       on_all_events:
         logger.log:
           format: "Event %s"
-          args: ['lv_event_code_name_for(lv_event_get_code(event)).c_str()']
+          args: ['lv_event_code_name_for(event).c_str()']
       skip: true
       layout:
         type: flex
@@ -200,7 +200,7 @@ lvgl:
             on_all_events:
               - logger.log:
                   format: "Event %s"
-                  args: ['lv_event_code_name_for(event->code).c_str()']
+                  args: ['lv_event_code_name_for(event).c_str()']
               - lvgl.animimg.update:
                   id: anim_img
                   src: !lambda "return {dog_image, cat_image};"
@@ -284,11 +284,12 @@ lvgl:
             text_letter_space: 4
             text_line_space: 4
             text_opa: cover
-            transform_angle: 180
+            transform_rotation: 180
             transform_height: 100
             transform_pivot_x: 50%
             transform_pivot_y: 50%
-            transform_zoom: 0.5
+            transform_scale_x: 0.5
+            transform_scale_y: 0.5
             translate_x: 10
             translate_y: 10
             max_height: 100
@@ -364,7 +365,7 @@ lvgl:
             id: button_button
             width: 20%
             height: 10%
-            transform_angle: !lambda return(180*100);
+            transform_rotation: !lambda return(180*100);
             arc_width: !lambda return 4;
             border_width: !lambda return 6;
             shadow_ofs_x: !lambda return 6;
@@ -471,7 +472,6 @@ lvgl:
             src: cat_image
             align: top_left
             y: "50"
-            mode: real
         - tileview:
             id: tileview_id
             scrollbar_mode: active
@@ -668,7 +668,6 @@ lvgl:
                       grid_cell_row_pos: 0
                       grid_cell_column_pos: 0
                       src: !lambda return dog_image;
-                      mode: virtual
                       on_click:
                         then:
                           - lvgl.tabview.select:
@@ -751,58 +750,6 @@ lvgl:
                               id: tabview_id
                               index: 0
                               animated: true
-                  - meter:
-                      height: 200px
-                      width: 200px
-                      indicator:
-                        bg_color: 0xFF
-                        radius: 0
-                      bg_opa: TRANSP
-                      text_color: 0xFFFFFF
-                      scales:
-                        - ticks:
-                            width: 1
-                            count: 61
-                            length: 20
-                            color: 0xFFFFFF
-                          range_from: 0
-                          range_to: 60
-                          angle_range: 360
-                          rotation: 270
-                          indicators:
-                            - line:
-                                opa: 50%
-                                id: minute_hand
-                                color: 0xFF0000
-                                r_mod: -1
-                                width: 3
-                        -
-                          angle_range: 330
-                          rotation: 300
-                          range_from: 1
-                          range_to: 12
-                          ticks:
-                            width: 1
-                            count: 12
-                            length: 1
-                            major:
-                              stride: 1
-                              width: 4
-                              length: 8
-                              color: 0xC0C0C0
-                              label_gap: 6
-                        - angle_range: 360
-                          rotation: 270
-                          range_from: 0
-                          range_to: 720
-                          indicators:
-                            - line:
-                                id: hour_hand
-                                value: 180
-                                width: 4
-                                color: 0xA0A0A0
-                                r_mod: -20
-                                opa: 0%
     - id: page3
       widgets:
         - keyboard:

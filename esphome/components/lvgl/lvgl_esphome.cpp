@@ -65,7 +65,8 @@ static unsigned log_level_map[] = {
 
 };
 
-std::string lv_event_code_name_for(uint8_t event_code) {
+std::string lv_event_code_name_for(lv_event_t *event) {
+  auto event_code = lv_event_get_code(event);
   if (event_code < sizeof(EVENT_NAMES) / sizeof(EVENT_NAMES[0])) {
     return EVENT_NAMES[event_code];
   }
@@ -151,9 +152,9 @@ void LvglComponent::show_prev_page(lv_scr_load_anim_t anim, uint32_t time) {
   } while (this->pages_[this->current_page_]->skip);  // skip empty pages()
   this->show_page(this->current_page_, anim, time);
 }
+size_t LvglComponent::get_current_page() const { return this->current_page_; }
+bool LvPageType::is_showing() const { return this->parent_->get_current_page() == this->index; }
 void LvglComponent::draw_buffer_(const lv_area_t *area, lv_color_data *ptr) {
-  size_t LvglComponent::get_current_page() const { return this->current_page_; }
-  bool LvPageType::is_showing() const { return this->parent_->get_current_page() == this->index; }
   auto width = lv_area_get_width(area);
   auto height = lv_area_get_height(area);
   auto x1 = area->x1;
@@ -556,7 +557,7 @@ void *lv_malloc_core(size_t size) {
 
 void lv_free_core(void *ptr) {
 #ifdef ESPHOME_LOG_HAS_VERBOSE
-  esphome::ESP_LOGV(esphome::lvgl::TAG, "free %p", ptr);
+  ESP_LOGV(esphome::lvgl::TAG, "free %p", ptr);
 #endif
   if (ptr == nullptr)
     return;
@@ -565,7 +566,7 @@ void lv_free_core(void *ptr) {
 
 void *lv_realloc_core(void *ptr, size_t size) {
 #ifdef ESPHOME_LOG_HAS_VERBOSE
-  esphome::ESP_LOGV(esphome::lvgl::TAG, "realloc %p: %zu", ptr, size);
+  ESP_LOGV(esphome::lvgl::TAG, "realloc %p: %zu", ptr, size);
 #endif
   return heap_caps_realloc(ptr, size, cap_bits);
 }

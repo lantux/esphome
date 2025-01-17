@@ -179,13 +179,13 @@ layer_spec = WidgetType(CONF_OBJ, lv_obj_t, (CONF_MAIN, CONF_SCROLLBAR))
 @automation.register_action(
     "lvgl.update",
     LvglAction,
-    part_schema(layer_spec)
+    part_schema(layer_spec.parts)
     .extend(LVGL_SCHEMA)
     .extend(
         {
             cv.GenerateID(): cv.use_id(LvglComponent),
-            cv.Optional(CONF_TOP_LAYER): part_schema(layer_spec),
-            cv.Optional(CONF_BOTTOM_LAYER): part_schema(layer_spec),
+            cv.Optional(CONF_TOP_LAYER): part_schema(layer_spec.parts),
+            cv.Optional(CONF_BOTTOM_LAYER): part_schema(layer_spec.parts),
         }
     ),
 )
