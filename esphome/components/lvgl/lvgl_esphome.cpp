@@ -126,6 +126,7 @@ void LvglComponent::add_event_cb(lv_obj_t *obj, event_callback_t callback, lv_ev
 }
 void LvglComponent::add_page(LvPageType *page) {
   this->pages_.push_back(page);
+  page->set_parent(this);
   page->setup(this->pages_.size() - 1);
 }
 void LvglComponent::show_page(size_t index, lv_scr_load_anim_t anim, uint32_t time) {
@@ -151,6 +152,8 @@ void LvglComponent::show_prev_page(lv_scr_load_anim_t anim, uint32_t time) {
   this->show_page(this->current_page_, anim, time);
 }
 void LvglComponent::draw_buffer_(const lv_area_t *area, lv_color_data *ptr) {
+  size_t LvglComponent::get_current_page() const { return this->current_page_; }
+  bool LvPageType::is_showing() const { return this->parent_->get_current_page() == this->index; }
   auto width = lv_area_get_width(area);
   auto height = lv_area_get_height(area);
   auto x1 = area->x1;
@@ -510,9 +513,7 @@ void lv_mem_deinit() {}
 void *lv_malloc_core(size_t size) {
   auto *ptr = malloc(size);  // NOLINT
   if (ptr == nullptr) {
-#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_ERROR
-    esphome::ESP_LOGE(esphome::lvgl::TAG, "Failed to allocate %zu bytes", size);
-#endif
+    ESP_LOGE(esphome::lvgl::TAG, "Failed to allocate %zu bytes", size);
   }
   return ptr;
 }
@@ -546,14 +547,10 @@ void *lv_malloc_core(size_t size) {
     ptr = heap_caps_malloc(size, cap_bits);
   }
   if (ptr == nullptr) {
-#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_ERROR
-    esphome::ESP_LOGE(esphome::lvgl::TAG, "Failed to allocate %zu bytes", size);
-#endif
+    ESP_LOGE(esphome::lvgl::TAG, "Failed to allocate %zu bytes", size);
     return nullptr;
   }
-#ifdef ESPHOME_LOG_HAS_VERBOSE
-  esphome::ESP_LOGV(esphome::lvgl::TAG, "allocate %zu - > %p", size, ptr);
-#endif
+  ESP_LOGV(esphome::lvgl::TAG, "allocate %zu - > %p", size, ptr);
   return ptr;
 }
 

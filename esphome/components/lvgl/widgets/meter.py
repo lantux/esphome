@@ -33,7 +33,7 @@ from ..defines import (
     CONF_STRIDE,
     CONF_TICKS,
 )
-from ..helpers import add_lv_use
+from ..helpers import add_lv_use, lvgl_components_required
 from ..lv_validation import (
     angle,
     get_end_value,
@@ -182,6 +182,7 @@ class MeterType(WidgetType):
         subsequent scales to the first one as children aligned with CENTER.
         """
 
+        lvgl_components_required.add(CONF_METER)
         var = w.obj
         for scale_conf in config.get(CONF_SCALES, ()):
             rotation = 90 + (360 - scale_conf[CONF_ANGLE_RANGE]) / 2
