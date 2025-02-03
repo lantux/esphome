@@ -7,6 +7,7 @@ from .defines import (
     CONF_ALIGN_TO,
     CONF_X,
     CONF_Y,
+    DIRECTIONS,
     LV_EVENT_MAP,
     LV_EVENT_TRIGGERS,
     SWIPE_TRIGGERS,
@@ -53,9 +54,10 @@ async def generate_triggers():
                 conf = conf[0]
                 dir = event[9:].upper()
                 dir = {"UP": "TOP", "DOWN": "BOTTOM"}.get(dir, dir)
+                dir = DIRECTIONS.mapper(dir)
                 w.clear_flag("LV_OBJ_FLAG_SCROLLABLE")
                 selected = literal(
-                    f"lv_indev_get_gesture_dir(lv_indev_get_act()) == LV_DIR_{dir}"
+                    f"lv_indev_get_gesture_dir(lv_indev_get_act()) == {dir}"
                 )
                 await add_trigger(
                     conf, w, literal("LV_EVENT_GESTURE"), is_selected=selected
