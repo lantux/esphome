@@ -167,6 +167,10 @@ TYPE_FLEX = "flex"
 TYPE_GRID = "grid"
 TYPE_NONE = "none"
 
+DIRECTIONS = LvConstant(
+    "LV_DIR_", "LEFT", "RIGHT", "BOTTOM", "TOP", typename="lv_dir_t"
+)
+
 LV_FONTS = list(f"montserrat_{s}" for s in range(8, 50, 2)) + [
     "dejavu_16_persian_hebrew",
     "simsun_16_cjk",
@@ -193,6 +197,9 @@ LV_EVENT_MAP = {
 }
 
 LV_EVENT_TRIGGERS = tuple(f"on_{x.lower()}" for x in LV_EVENT_MAP)
+SWIPE_TRIGGERS = tuple(
+    f"on_swipe_{x.lower()}" for x in DIRECTIONS.choices + ("up", "down")
+)
 
 
 LV_ANIM = LvConstant(
@@ -270,9 +277,6 @@ KEYBOARD_MODES = LvConstant(
     "NUMBER",
 )
 ROLLER_MODES = LvConstant("LV_ROLLER_MODE_", "NORMAL", "INFINITE")
-DIRECTIONS = LvConstant(
-    "LV_DIR_", "LEFT", "RIGHT", "BOTTOM", "TOP", typename="lv_dir_t"
-)
 TILE_DIRECTIONS = DIRECTIONS.extend("HOR", "VER", "ALL")
 CHILD_ALIGNMENTS = LvConstant(
     "LV_ALIGN_",
