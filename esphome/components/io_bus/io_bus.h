@@ -20,6 +20,8 @@ class NullPin : public GPIOPin {
   void digital_write(bool _) override {}
 
   std::string dump_summary() const override { return {"Not used"}; }
+
+  gpio::Flags get_flags() const override { return gpio::Flags{}; }
 };
 
 // https://bugs.llvm.org/show_bug.cgi?id=48040

@@ -7,6 +7,7 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_AUTO_CLEAR_ENABLED,
     CONF_BUFFER_SIZE,
+    CONF_GROUP,
     CONF_ID,
     CONF_LAMBDA,
     CONF_ON_IDLE,
@@ -22,10 +23,16 @@ from esphome.helpers import write_file_if_changed
 
 from . import defines as df, helpers, lv_validation as lvalid
 from .automation import disp_update, focused_widgets, update_to_code
-from .defines import add_define
-from .encoders import ENCODERS_CONFIG, encoders_to_code, initial_focus_to_code
+from .defines import CONF_DRAW_ROUNDING, add_define
+from .encoders import (
+    ENCODERS_CONFIG,
+    encoders_to_code,
+    get_default_group,
+    initial_focus_to_code,
+)
 from .gradient import GRADIENT_SCHEMA, gradients_to_code
 from .hello_world import get_hello_world
+from .keypads import KEYPADS_CONFIG, keypads_to_code
 from .lv_validation import lv_bool, lv_images_used
 from .lvcode import LvContext, LvglComponent, lvgl_static
 from .schemas import (
@@ -54,7 +61,14 @@ from .types import (
     lv_style_t,
     lvgl_ns,
 )
-from .widgets import Widget, add_widgets, get_scr_act, set_obj_properties, styles_used
+from .widgets import (
+    LvScrActType,
+    Widget,
+    add_widgets,
+    get_scr_act,
+    set_obj_properties,
+    styles_used,
+)
 from .widgets.animimg import animimg_spec
 from .widgets.arc import arc_spec
 from .widgets.button import button_spec
@@ -158,6 +172,13 @@ def multi_conf_validate(configs: list[dict]):
     display_list = [disp for disps in displays for disp in disps]
     if len(display_list) != len(set(display_list)):
         raise cv.Invalid("A display ID may be used in only one LVGL instance")
+    for config in configs:
+        for item in (df.CONF_ENCODERS, df.CONF_KEYPADS):
+            for enc in config.get(item, ()):
+                if CONF_GROUP not in enc:
+                    raise cv.Invalid(
+                        f"'{item}' must have an explicit group set when using multiple LVGL instances"
+                    )
     base_config = configs[0]
     for config in configs[1:]:
         for item in (
@@ -173,7 +194,8 @@ def multi_conf_validate(configs: list[dict]):
 
 
 def final_validation(configs):
-    multi_conf_validate(configs)
+    if len(configs) != 1:
+        multi_conf_validate(configs)
     global_config = full_config.get()
     for config in configs:
         if pages := config.get(CONF_PAGES):
@@ -182,13 +204,17 @@ def final_validation(configs):
         for display_id in config[df.CONF_DISPLAYS]:
             path = global_config.get_path_for_id(display_id)[:-1]
             display = global_config.get_config_for_path(path)
-            if CONF_LAMBDA in display:
+            if CONF_LAMBDA in display or CONF_PAGES in display:
                 raise cv.Invalid(
-                    "Using lambda: in display config not compatible with LVGL"
+                    "Using lambda: or pages: in display config is not compatible with LVGL"
                 )
-            if display[CONF_AUTO_CLEAR_ENABLED]:
+            if display.get(CONF_AUTO_CLEAR_ENABLED) is True:
                 raise cv.Invalid(
                     "Using auto_clear_enabled: true in display config not compatible with LVGL"
+                )
+            if draw_rounding := display.get(CONF_DRAW_ROUNDING):
+                config[CONF_DRAW_ROUNDING] = max(
+                    draw_rounding, config[CONF_DRAW_ROUNDING]
                 )
         buffer_frac = config[CONF_BUFFER_SIZE]
         if CORE.is_esp32 and buffer_frac > 0.5 and "psram" not in global_config:
@@ -275,6 +301,7 @@ async def to_code(configs):
     else:
         add_define("LV_FONT_DEFAULT", await lvalid.lv_font.process(default_font))
     cg.add(lvgl_static.esphome_lvgl_init())
+    default_group = get_default_group(config_0)
 
     for config in configs:
         frac = config[CONF_BUFFER_SIZE]
@@ -298,15 +325,16 @@ async def to_code(configs):
             config[df.CONF_RESUME_ON_INPUT],
         )
         await cg.register_component(lv_component, config)
-        Widget.create(config[CONF_ID], lv_component, obj_spec, config)
+        Widget.create(config[CONF_ID], lv_component, LvScrActType(), config)
 
         lv_scr_act = get_scr_act(lv_component)
         async with LvContext():
             await touchscreens_to_code(lv_component, config)
-            await encoders_to_code(lv_component, config)
+            await encoders_to_code(lv_component, config, default_group)
+            await keypads_to_code(lv_component, config, default_group)
             await theme_to_code(config)
-            await styles_to_code(config)
             await gradients_to_code(config)
+            await styles_to_code(config)
             await set_obj_properties(lv_scr_act, config)
             await add_widgets(lv_scr_act, config)
             await add_pages(lv_component, config)
@@ -368,74 +396,87 @@ def add_hello_world(config):
 
 FINAL_VALIDATE_SCHEMA = final_validation
 
-LVGL_SCHEMA = (
-    cv.polling_component_schema("1s")
-    .extend(obj_schema(obj_spec))
-    .extend(
-        {
-            cv.GenerateID(CONF_ID): cv.declare_id(LvglComponent),
-            cv.GenerateID(df.CONF_DISPLAYS): display_schema,
-            cv.Optional(df.CONF_COLOR_DEPTH, default=16): cv.one_of(16),
-            cv.Optional(df.CONF_DEFAULT_FONT, default="montserrat_14"): lvalid.lv_font,
-            cv.Optional(df.CONF_FULL_REFRESH, default=False): cv.boolean,
-            cv.Optional(df.CONF_DRAW_ROUNDING, default=2): cv.positive_int,
-            cv.Optional(CONF_BUFFER_SIZE, default="100%"): cv.percentage,
-            cv.Optional(df.CONF_LOG_LEVEL, default="WARN"): cv.one_of(
-                *df.LV_LOG_LEVELS, upper=True
-            ),
-            cv.Optional(df.CONF_BYTE_ORDER, default="big_endian"): cv.one_of(
-                "big_endian", "little_endian"
-            ),
-            cv.Optional(df.CONF_STYLE_DEFINITIONS): cv.ensure_list(
-                cv.Schema({cv.Required(CONF_ID): cv.declare_id(lv_style_t)})
-                .extend(STYLE_SCHEMA)
-                .extend(
+LVGL_SCHEMA = cv.All(
+    container_schema(
+        obj_spec,
+        cv.polling_component_schema("1s")
+        .extend(
+            {
+                cv.GenerateID(CONF_ID): cv.declare_id(LvglComponent),
+                cv.GenerateID(df.CONF_DISPLAYS): display_schema,
+                cv.Optional(df.CONF_COLOR_DEPTH, default=16): cv.one_of(16),
+                cv.Optional(
+                    df.CONF_DEFAULT_FONT, default="montserrat_14"
+                ): lvalid.lv_font,
+                cv.Optional(df.CONF_FULL_REFRESH, default=False): cv.boolean,
+                cv.Optional(df.CONF_DRAW_ROUNDING, default=2): cv.positive_int,
+                cv.Optional(CONF_BUFFER_SIZE, default="100%"): cv.percentage,
+                cv.Optional(df.CONF_LOG_LEVEL, default="WARN"): cv.one_of(
+                    *df.LV_LOG_LEVELS, upper=True
+                ),
+                cv.Optional(df.CONF_BYTE_ORDER, default="big_endian"): cv.one_of(
+                    "big_endian", "little_endian"
+                ),
+                cv.Optional(df.CONF_STYLE_DEFINITIONS): cv.ensure_list(
+                    cv.Schema({cv.Required(CONF_ID): cv.declare_id(lv_style_t)})
+                    .extend(STYLE_SCHEMA)
+                    .extend(
+                        {
+                            cv.Optional(df.CONF_GRID_CELL_X_ALIGN): grid_alignments,
+                            cv.Optional(df.CONF_GRID_CELL_Y_ALIGN): grid_alignments,
+                            cv.Optional(df.CONF_PAD_ROW): lvalid.pixels,
+                            cv.Optional(df.CONF_PAD_COLUMN): lvalid.pixels,
+                        }
+                    )
+                ),
+                cv.Optional(CONF_ON_IDLE): validate_automation(
                     {
-                        cv.Optional(df.CONF_GRID_CELL_X_ALIGN): grid_alignments,
-                        cv.Optional(df.CONF_GRID_CELL_Y_ALIGN): grid_alignments,
-                        cv.Optional(df.CONF_PAD_ROW): lvalid.pixels,
-                        cv.Optional(df.CONF_PAD_COLUMN): lvalid.pixels,
+                        cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(IdleTrigger),
+                        cv.Required(CONF_TIMEOUT): cv.templatable(
+                            cv.positive_time_period_milliseconds
+                        ),
                     }
-                )
-            ),
-            cv.Optional(CONF_ON_IDLE): validate_automation(
-                {
-                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(IdleTrigger),
-                    cv.Required(CONF_TIMEOUT): cv.templatable(
-                        cv.positive_time_period_milliseconds
-                    ),
-                }
-            ),
-            cv.Optional(df.CONF_ON_PAUSE): validate_automation(
-                {
-                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(PauseTrigger),
-                }
-            ),
-            cv.Optional(df.CONF_ON_RESUME): validate_automation(
-                {
-                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(PauseTrigger),
-                }
-            ),
-            cv.Exclusive(df.CONF_WIDGETS, CONF_PAGES): cv.ensure_list(WIDGET_SCHEMA),
-            cv.Exclusive(CONF_PAGES, CONF_PAGES): cv.ensure_list(
-                container_schema(page_spec)
-            ),
-            cv.Optional(df.CONF_MSGBOXES): cv.ensure_list(MSGBOX_SCHEMA),
-            cv.Optional(df.CONF_PAGE_WRAP, default=True): lv_bool,
-            cv.Optional(df.CONF_TOP_LAYER): container_schema(obj_spec),
-            cv.Optional(df.CONF_TRANSPARENCY_KEY, default=0x000400): lvalid.lv_color,
-            cv.Optional(df.CONF_THEME): cv.Schema(
-                {cv.Optional(name): obj_schema(w) for name, w in WIDGET_TYPES.items()}
-            ),
-            cv.Optional(df.CONF_GRADIENTS): GRADIENT_SCHEMA,
-            cv.Optional(df.CONF_TOUCHSCREENS, default=None): touchscreen_schema,
-            cv.Optional(df.CONF_ENCODERS, default=None): ENCODERS_CONFIG,
-            cv.GenerateID(df.CONF_DEFAULT_GROUP): cv.declare_id(lv_group_t),
-            cv.Optional(df.CONF_RESUME_ON_INPUT, default=True): cv.boolean,
-        }
-    )
-    .extend(DISP_BG_SCHEMA)
-    .add_extra(add_hello_world)
+                ),
+                cv.Optional(df.CONF_ON_PAUSE): validate_automation(
+                    {
+                        cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(PauseTrigger),
+                    }
+                ),
+                cv.Optional(df.CONF_ON_RESUME): validate_automation(
+                    {
+                        cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(PauseTrigger),
+                    }
+                ),
+                cv.Exclusive(df.CONF_WIDGETS, CONF_PAGES): cv.ensure_list(
+                    WIDGET_SCHEMA
+                ),
+                cv.Exclusive(CONF_PAGES, CONF_PAGES): cv.ensure_list(
+                    container_schema(page_spec)
+                ),
+                cv.Optional(df.CONF_MSGBOXES): cv.ensure_list(MSGBOX_SCHEMA),
+                cv.Optional(df.CONF_PAGE_WRAP, default=True): lv_bool,
+                cv.Optional(df.CONF_TOP_LAYER): container_schema(obj_spec),
+                cv.Optional(
+                    df.CONF_TRANSPARENCY_KEY, default=0x000400
+                ): lvalid.lv_color,
+                cv.Optional(df.CONF_THEME): cv.Schema(
+                    {
+                        cv.Optional(name): obj_schema(w)
+                        for name, w in WIDGET_TYPES.items()
+                    }
+                ),
+                cv.Optional(df.CONF_GRADIENTS): GRADIENT_SCHEMA,
+                cv.Optional(df.CONF_TOUCHSCREENS, default=None): touchscreen_schema,
+                cv.Optional(df.CONF_ENCODERS, default=None): ENCODERS_CONFIG,
+                cv.Optional(df.CONF_KEYPADS, default=None): KEYPADS_CONFIG,
+                cv.GenerateID(df.CONF_DEFAULT_GROUP): cv.declare_id(lv_group_t),
+                cv.Optional(df.CONF_RESUME_ON_INPUT, default=True): cv.boolean,
+            }
+        )
+        .extend(DISP_BG_SCHEMA),
+    ),
+    cv.has_at_most_one_key(CONF_PAGES, df.CONF_LAYOUT),
+    add_hello_world,
 )
 
 
