@@ -9,7 +9,7 @@ from esphome.const import (
 )
 from esphome.cpp_generator import MockObj
 
-from .defines import CONF_GRADIENTS, LV_DITHER, LV_GRAD_DIR, add_define
+from .defines import CONF_GRADIENTS, LV_DITHER, LV_GRAD_DIR, GradientStops
 from .lv_validation import lv_color, lv_fraction
 from .lvcode import lv_assign
 from .types import lv_gradient_t
@@ -46,10 +46,9 @@ GRADIENT_SCHEMA = cv.ensure_list(
 
 
 async def gradients_to_code(config):
-    max_stops = 2
     for gradient in config.get(CONF_GRADIENTS, ()):
         var = MockObj(cg.new_Pvariable(gradient[CONF_ID]), "->")
-        max_stops = max(max_stops, len(gradient[CONF_STOPS]))
+        GradientStops.set_need(len(gradient[CONF_STOPS]))
         lv_assign(var.dir, await LV_GRAD_DIR.process(gradient[CONF_DIRECTION]))
         lv_assign(var.dither, await LV_DITHER.process(gradient[CONF_DITHER]))
         lv_assign(var.stops_count, len(gradient[CONF_STOPS]))
@@ -58,4 +57,3 @@ async def gradients_to_code(config):
             lv_assign(
                 var.stops[index].frac, await lv_fraction.process(stop[CONF_POSITION])
             )
-    add_define("LV_GRADIENT_MAX_STOPS", max_stops)

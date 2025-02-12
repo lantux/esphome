@@ -29,6 +29,18 @@ def add_define(macro, value="1"):
     lv_defines[macro] = value
 
 
+class GradientStops:
+    gradient_max_stops = 2  # Maximum number of stops in a gradient
+
+    @staticmethod
+    def set_need(stops):
+        GradientStops.gradient_max_stops = stops
+
+    @staticmethod
+    def get_max_stops():
+        return GradientStops.gradient_max_stops
+
+
 def literal(arg):
     if isinstance(arg, str):
         return MockObj(arg)
@@ -547,9 +559,6 @@ LV_KEYS = LvConstant(
     "HOME",
     "END",
 )
-
-LV_DITHER = LvConstant("LV_DITHER_", "NONE", "ORDERED", "ERR_DIFF")
-LV_GRAD_DIR = LvConstant("LV_GRAD_DIR_", "NONE", "HOR", "VER")
 
 DEFAULT_ESPHOME_FONT = "esphome_lv_default_font"
 

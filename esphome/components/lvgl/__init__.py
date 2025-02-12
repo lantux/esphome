@@ -369,6 +369,7 @@ async def to_code(configs):
                 await build_automation(resume_trigger, [], conf)
 
     # This must be done after all widgets are created
+    add_define("LV_GRADIENT_MAX_STOPS", df.GradientStops.get_max_stops())
     for comp in helpers.lvgl_components_required:
         cg.add_define(f"USE_LVGL_{comp.upper()}")
     if "transform_angle" in styles_used:

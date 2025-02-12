@@ -1,5 +1,5 @@
 from esphome.components.display_menu_base import CONF_LABEL
-from esphome.components.lvgl.defines import CONF_MAIN
+from esphome.components.lvgl.defines import CONF_MAIN, GradientStops
 from esphome.components.lvgl.helpers import lvgl_components_required
 from esphome.components.lvgl.lv_validation import lv_color, size
 from esphome.components.lvgl.lvcode import lv_add
@@ -48,6 +48,7 @@ class ColorPickerType(WidgetType):
         if color := config.get(CONF_COLOR):
             lv_add(w.var.set_color(await lv_color.process(color)))
         w.set_style(CONF_HEIGHT, await size.process(config[CONF_WIDTH]), 0)
+        GradientStops.set_need(7)
 
     def get_uses(self):
         return ("flex", CONF_SLIDER, CONF_BAR, CONF_LABEL)
