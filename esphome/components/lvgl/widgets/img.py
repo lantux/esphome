@@ -61,8 +61,8 @@ class ImgType(WidgetType):
         if src := config.get(CONF_SRC):
             lv.img_set_src(w.obj, await lv_image.process(src))
         if (cf_angle := config.get(CONF_ANGLE)) is not None:
-            pivot_x = config[CONF_PIVOT_X]
-            pivot_y = config[CONF_PIVOT_Y]
+            pivot_x = await size.process(config[CONF_PIVOT_X])
+            pivot_y = await size.process(config[CONF_PIVOT_Y])
             lv.img_set_pivot(w.obj, pivot_x, pivot_y)
             lv.img_set_angle(w.obj, cf_angle)
         if (img_zoom := config.get(CONF_ZOOM)) is not None:

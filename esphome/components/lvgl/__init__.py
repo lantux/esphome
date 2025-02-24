@@ -461,9 +461,9 @@ LVGL_SCHEMA = cv.All(
                 cv.Optional(df.CONF_RESUME_ON_INPUT, default=True): cv.boolean,
             }
         ),
-        cv.has_at_most_one_key(CONF_PAGES, df.CONF_LAYOUT),
-        add_hello_world,
-    )
+    ),
+    cv.has_at_most_one_key(CONF_PAGES, df.CONF_LAYOUT),
+    add_hello_world,
 )
 
 
