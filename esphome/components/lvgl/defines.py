@@ -194,6 +194,7 @@ LV_EVENT_MAP = {
     "CANCEL": "CANCEL",
     "ALL_EVENTS": "ALL",
     "CHANGE": "VALUE_CHANGED",
+    "GESTURE": "GESTURE",
 }
 
 LV_EVENT_TRIGGERS = tuple(f"on_{x.lower()}" for x in LV_EVENT_MAP)
