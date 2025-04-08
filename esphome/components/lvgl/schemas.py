@@ -474,7 +474,7 @@ def collect_states(config):
     :param config:
     :return:
     """
-    states = {}
+    states = {"default": collect_props(config)}
     for state in df.STATES:
         if state in config:
             states[state] = collect_props(config[state])
