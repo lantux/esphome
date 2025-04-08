@@ -425,6 +425,10 @@ LvglComponent::LvglComponent(std::vector<display::Display *> displays, float buf
       buffer_frac_(buffer_frac),
       full_refresh_(full_refresh),
       resume_on_input_(resume_on_input) {
+  this->disp_ = lv_display_create(240, 240);
+}
+
+void LvglComponent::setup() {
   auto *display = this->displays_[0];
   this->width_ = display->get_width();
   this->height_ = display->get_height();
@@ -439,22 +443,18 @@ LvglComponent::LvglComponent(std::vector<display::Display *> displays, float buf
   this->draw_buf_ = static_cast<uint8_t *>(lv_malloc_core(buf_bytes));  // NOLINT
   if (this->draw_buf_ == nullptr)
     return;
-  this->disp_ = lv_display_create(this->width_, this->height_);
+  lv_display_set_resolution(this->disp_, this->width_, this->height_);
   lv_display_set_color_format(this->disp_, LV_COLOR_FORMAT_RGB565);
   lv_display_set_buffers(this->disp_, this->draw_buf_, nullptr, buf_bytes,
                          this->full_refresh_ ? LV_DISPLAY_RENDER_MODE_FULL : LV_DISPLAY_RENDER_MODE_PARTIAL);
   lv_display_set_user_data(this->disp_, this);
   lv_display_set_flush_cb(this->disp_, static_flush_cb);
   lv_display_add_event_cb(this->disp_, rounder_cb, LV_EVENT_INVALIDATE_AREA, this);
-}
-
-void LvglComponent::setup() {
   if (this->draw_buf_ == nullptr) {
     this->mark_failed();
     this->status_set_error("Memory allocation failure");
     return;
   }
-  ESP_LOGCONFIG(TAG, "LVGL Setup starts");
 #if LV_USE_LOG
   lv_log_register_print_cb([](lv_log_level_t level, const char *buf) {
     auto next = strchr(buf, ')');
@@ -469,8 +469,8 @@ void LvglComponent::setup() {
 #endif
   lv_tick_set_cb([] { return millis(); });
   // Rotation will be handled by our drawing function, so reset the display rotation.
-  for (auto *display : this->displays_)
-    display->set_rotation(display::DISPLAY_ROTATION_0_DEGREES);
+  for (auto *disp : this->displays_)
+    disp->set_rotation(display::DISPLAY_ROTATION_0_DEGREES);
   this->show_page(0, LV_SCR_LOAD_ANIM_NONE, 0);
   lv_disp_trig_activity(this->disp_);
   ESP_LOGCONFIG(TAG, "LVGL Setup complete");
