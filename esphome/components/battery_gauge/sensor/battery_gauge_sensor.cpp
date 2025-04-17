@@ -26,7 +26,7 @@ void BatteryGaugeSensor::publish_(float new_state) {
   unsigned new_percentage = std::round(percentage * 10.0);
   if (new_percentage != this->charge_percentage_) {
     this->charge_percentage_ = new_percentage;
-    this->saved_percentage_.save(&new_percentage);
+    this->saved_percentage_.save(&this->charge_percentage_);
   }
 }
 void BatteryGaugeSensor::on_voltage_(float value) {}
@@ -34,9 +34,10 @@ void BatteryGaugeSensor::setup() {
   this->current_source_->add_on_state_callback([this](float value) { this->on_current_(value); });
   this->voltage_source_->add_on_state_callback([this](float value) { this->on_voltage_(value); });
   this->last_time_ = millis();
-  // if (!this->saved_percentage_.load(&this->charge_percentage_)) {
-  this->charge_percentage_ = this->initial_state_ * 1000.0f;
-  //}
+  if (!this->saved_percentage_.load(&this->charge_percentage_) || this->charge_percentage_ == 0) {
+    this->charge_percentage_ = this->initial_state_ * 1000.0f;
+    this->saved_percentage_.save(&this->charge_percentage_);
+  }
   this->charge_state_ = this->charge_percentage_ / 1000.0f * this->capacity_;
 }
 

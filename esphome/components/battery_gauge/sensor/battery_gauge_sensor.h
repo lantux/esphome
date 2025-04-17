@@ -29,7 +29,7 @@ class BatteryGaugeSensor : public sensor::Sensor, public Component {
   void on_current_(float value);
   void on_voltage_(float value);
   float charge_state_{};
-  int charge_percentage_{0};
+  unsigned charge_percentage_{0};
   float last_current_{0};
   std::map<float, int> discharge_map_;
   std::map<float, int> charge_map_;

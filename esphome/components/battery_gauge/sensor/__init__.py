@@ -85,5 +85,6 @@ async def to_code(config):
     var = await sensor.new_sensor(
         config, voltage_source, current_source, capacity, maps[0], maps[1]
     )
-    cg.add(var.set_initial_state(config.get(CONF_INITIAL_STATE)))
+    if initial_state := config.get(CONF_INITIAL_STATE):
+        cg.add(var.set_initial_state(initial_state))
     await cg.register_component(var, config)
