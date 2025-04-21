@@ -11,8 +11,11 @@ void BatteryGaugeSensor::on_current_(float value) {
   auto current = (value + this->last_current_) / 2.0f;
   this->last_current_ = value;
   auto now = millis();
-  float interval = (now - this->last_time_) / 1000.0f / 3600.0f;
+  auto previous = this->last_time_;
   this->last_time_ = now;
+  if (previous == 0)
+    return;
+  float interval = (now - this->last_time_) / 1000.0f / 3600.0f;
   auto delta = current * interval;
   ESP_LOGD(TAG, "current: %f, interval: %f, delta: %f, charge state: %f", current, interval, delta,
            this->charge_state_);
