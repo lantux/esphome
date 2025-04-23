@@ -15,7 +15,7 @@ void BatteryGaugeSensor::on_current_(float value) {
   this->last_time_ = now;
   if (previous == 0)
     return;
-  float interval = (now - this->last_time_) / 1000.0f / 3600.0f;
+  float interval = (now - previous) / 1000.0f / 3600.0f;
   auto delta = current * interval;
   ESP_LOGD(TAG, "current: %f, interval: %f, delta: %f, charge state: %f", current, interval, delta,
            this->charge_state_);
@@ -38,6 +38,7 @@ void BatteryGaugeSensor::setup() {
   this->voltage_source_->add_on_state_callback([this](float value) { this->on_voltage_(value); });
   this->last_time_ = millis();
   if (!this->saved_percentage_.load(&this->charge_percentage_) || this->charge_percentage_ == 0) {
+    ESP_LOGD(TAG, "Setting initial charge state to %f", this->initial_state_);
     this->charge_percentage_ = this->initial_state_ * 1000.0f;
     this->saved_percentage_.save(&this->charge_percentage_);
   }
