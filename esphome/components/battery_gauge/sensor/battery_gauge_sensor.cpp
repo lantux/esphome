@@ -8,7 +8,13 @@ namespace battery_gauge {
 static const char *const TAG = "battery_gauge.sensor";
 
 void BatteryGaugeSensor::on_current_(float value) {
-  auto current = (value + this->last_current_) / 2.0f;
+  if (!std::isfinite(value))
+    return;  // ignore invalid values
+  auto current = value;
+  if (std::isfinite(this->last_current_)) {
+    current += this->last_current_;
+    current /= 2.0f;
+  }
   this->last_current_ = value;
   auto now = millis();
   auto previous = this->last_time_;
