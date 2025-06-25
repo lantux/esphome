@@ -35,6 +35,7 @@ void BatteryGaugeSensor::publish_(float new_state) {
   unsigned new_percentage = std::round(percentage * 10.0);
   if (new_percentage != this->charge_percentage_) {
     this->charge_percentage_ = new_percentage;
+    ESP_LOGD(TAG, "Saving charge percentage: %u", this->charge_percentage_);
     this->saved_percentage_.save(&this->charge_percentage_);
   }
 }
@@ -53,7 +54,11 @@ void BatteryGaugeSensor::setup() {
 
 void BatteryGaugeSensor::dump_config() {
   LOG_SENSOR("", "Battery Gauge", this);
-  ESP_LOGCONFIG(TAG, "Capacity: %.0f", this->capacity_);
+  ESP_LOGCONFIG(TAG, "  Capacity: %.0f", this->capacity_);
+  unsigned saved_charge;
+  if (this->saved_percentage_.load(&saved_charge)) {
+    ESP_LOGCONFIG(TAG, "  Saved charge percentage: %.1f", saved_charge / 10.0f);
+  }
 }
 }  // namespace battery_gauge
 }  // namespace esphome
