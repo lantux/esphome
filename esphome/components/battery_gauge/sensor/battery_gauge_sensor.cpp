@@ -41,7 +41,7 @@ void BatteryGaugeSensor::publish_(float new_state) {
 }
 void BatteryGaugeSensor::on_voltage_(float value) {
   for (auto &pair : this->charge_map_) {
-    if (value >= pair.first && (this->last_voltage_ < pair.first || this->charge_percentage_ < pair.second * 10) {
+    if (value >= pair.first && (this->last_voltage_ < pair.first || this->charge_percentage_ < pair.second * 10)) {
       auto new_state = pair.second * this->capacity_ / 100.0f;  // convert to Ah
       this->publish_(new_state);
       ESP_LOGD(TAG, "Charging: Voltage %f, charge percentage: %.1f", value, this->charge_percentage_ / 10.0);
@@ -51,7 +51,7 @@ void BatteryGaugeSensor::on_voltage_(float value) {
   }
   // If the voltage is decreasing, we check the discharge map
   for (auto &pair : this->discharge_map_) {
-    if (value <= pair.first && (this->last_voltage_ > pair.first || this->charge_percentage_ > pair.second * 10) {
+    if (value <= pair.first && (this->last_voltage_ > pair.first || this->charge_percentage_ > pair.second * 10)) {
       auto new_state = pair.second * this->capacity_ / 100.0f;  // convert to Ah
       this->publish_(new_state);
       ESP_LOGD(TAG, "Discharging: Voltage %f, charge percentage: %.1f", value, this->charge_percentage_ / 10.0);
