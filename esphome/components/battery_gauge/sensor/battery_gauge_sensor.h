@@ -23,19 +23,20 @@ class BatteryGaugeSensor : public sensor::Sensor, public Component {
   void set_initial_state(float initial_state) { initial_state_ = initial_state; }
 
  protected:
-  sensor::Sensor *voltage_source_;
-  sensor::Sensor *current_source_;
+  void publish_(float new_state);
+  Sensor *voltage_source_;
+  Sensor *current_source_;
   float capacity_;
   void on_current_(float value);
   void on_voltage_(float value);
-  float charge_state_{};
+  float charge_state_{};  // charge state in Ah
   unsigned charge_percentage_{0};
-  float last_current_{0};
   std::map<float, int> discharge_map_;
   std::map<float, int> charge_map_;
   float initial_state_{0};
   uint32_t last_time_{0};
-  void publish_(float new_state);
+  float last_voltage_{NAN};
+  float last_current_{NAN};
   ESPPreferenceObject saved_percentage_;
 };
 

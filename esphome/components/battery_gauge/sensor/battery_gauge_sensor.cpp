@@ -8,11 +8,20 @@ namespace battery_gauge {
 static const char *const TAG = "battery_gauge.sensor";
 
 void BatteryGaugeSensor::on_current_(float value) {
-  auto current = (value + this->last_current_) / 2.0f;
+  if (!std::isfinite(value))
+    return;  // ignore invalid values
+  auto current = value;
+  if (std::isfinite(this->last_current_)) {
+    current += this->last_current_;
+    current /= 2.0f;
+  }
   this->last_current_ = value;
   auto now = millis();
-  float interval = (now - this->last_time_) / 1000.0f / 3600.0f;
+  auto previous = this->last_time_;
   this->last_time_ = now;
+  if (previous == 0)
+    return;
+  float interval = (now - previous) / 1000.0f / 3600.0f;
   auto delta = current * interval;
   ESP_LOGD(TAG, "current: %f, interval: %f, delta: %f, charge state: %f", current, interval, delta,
            this->charge_state_);
@@ -26,15 +35,39 @@ void BatteryGaugeSensor::publish_(float new_state) {
   unsigned new_percentage = std::round(percentage * 10.0);
   if (new_percentage != this->charge_percentage_) {
     this->charge_percentage_ = new_percentage;
+    ESP_LOGD(TAG, "Saving charge percentage: %u", this->charge_percentage_);
     this->saved_percentage_.save(&this->charge_percentage_);
   }
 }
-void BatteryGaugeSensor::on_voltage_(float value) {}
+void BatteryGaugeSensor::on_voltage_(float value) {
+  if (value > this->last_voltage_) {
+    for (auto &pair : this->charge_map_) {
+      if (value >= pair.first && this->last_voltage_ < pair.first) {
+        auto new_state = pair.second * this->capacity_ / 100.0f;  // convert to Ah
+        ESP_LOGD(TAG, "Charging: Voltage %f, charge percentage: %u", value, this->charge_percentage_);
+        this->publish_(new_state);
+        break;
+      }
+    }
+  } else if (value < this->last_voltage_) {
+    // If the voltage is decreasing, we check the discharge map
+    for (auto &pair : this->discharge_map_) {
+      if (value <= pair.first && this->last_voltage_ > pair.first) {
+        auto new_state = pair.second * this->capacity_ / 100.0f;  // convert to Ah
+        ESP_LOGD(TAG, "Discharging: Voltage %f, charge percentage: %u", value, this->charge_percentage_);
+        this->publish_(new_state);
+        break;
+      }
+    }
+    this->last_voltage_ = value;
+  }
+}
 void BatteryGaugeSensor::setup() {
   this->current_source_->add_on_state_callback([this](float value) { this->on_current_(value); });
   this->voltage_source_->add_on_state_callback([this](float value) { this->on_voltage_(value); });
   this->last_time_ = millis();
   if (!this->saved_percentage_.load(&this->charge_percentage_) || this->charge_percentage_ == 0) {
+    ESP_LOGD(TAG, "Setting initial charge state to %f", this->initial_state_);
     this->charge_percentage_ = this->initial_state_ * 1000.0f;
     this->saved_percentage_.save(&this->charge_percentage_);
   }
@@ -43,7 +76,23 @@ void BatteryGaugeSensor::setup() {
 
 void BatteryGaugeSensor::dump_config() {
   LOG_SENSOR("", "Battery Gauge", this);
-  ESP_LOGCONFIG(TAG, "Capacity: %.0f", this->capacity_);
+  ESP_LOGCONFIG(TAG, "  Capacity: %.0f", this->capacity_);
+  unsigned saved_charge;
+  if (this->saved_percentage_.load(&saved_charge)) {
+    ESP_LOGCONFIG(TAG, "  Saved charge percentage: %.1f", saved_charge / 10.0f);
+  }
+  if (!this->charge_map_.empty()) {
+    ESP_LOGCONFIG(TAG, "  Charge map:");
+    for (const auto &pair : this->charge_map_) {
+      ESP_LOGCONFIG(TAG, "    %.1f V: %d%%", pair.first, pair.second);
+    }
+  }
+  if (!this->discharge_map_.empty()) {
+    ESP_LOGCONFIG(TAG, "  Discharge map:");
+    for (const auto &pair : this->discharge_map_) {
+      ESP_LOGCONFIG(TAG, "    %.1f V: %d%%", pair.first, pair.second);
+    }
+  }
 }
 }  // namespace battery_gauge
 }  // namespace esphome
