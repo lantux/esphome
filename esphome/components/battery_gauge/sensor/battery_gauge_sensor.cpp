@@ -39,7 +39,29 @@ void BatteryGaugeSensor::publish_(float new_state) {
     this->saved_percentage_.save(&this->charge_percentage_);
   }
 }
-void BatteryGaugeSensor::on_voltage_(float value) {}
+void BatteryGaugeSensor::on_voltage_(float value) {
+  if (value > this->last_voltage_) {
+    for (auto &pair : this->charge_map_) {
+      if (value >= pair.first && this->last_voltage_ < pair.first) {
+        auto new_state = pair.second * this->capacity_ / 100.0f;  // convert to Ah
+        ESP_LOGD(TAG, "Charging: Voltage %f, charge percentage: %u", value, this->charge_percentage_);
+        this->publish_(new_state);
+        break;
+      }
+    }
+  } else if (value < this->last_voltage_) {
+    // If the voltage is decreasing, we check the discharge map
+    for (auto &pair : this->discharge_map_) {
+      if (value <= pair.first && this->last_voltage_ > pair.first) {
+        auto new_state = pair.second * this->capacity_ / 100.0f;  // convert to Ah
+        ESP_LOGD(TAG, "Discharging: Voltage %f, charge percentage: %u", value, this->charge_percentage_);
+        this->publish_(new_state);
+        break;
+      }
+    }
+    this->last_voltage_ = value;
+  }
+}
 void BatteryGaugeSensor::setup() {
   this->current_source_->add_on_state_callback([this](float value) { this->on_current_(value); });
   this->voltage_source_->add_on_state_callback([this](float value) { this->on_voltage_(value); });
@@ -58,6 +80,18 @@ void BatteryGaugeSensor::dump_config() {
   unsigned saved_charge;
   if (this->saved_percentage_.load(&saved_charge)) {
     ESP_LOGCONFIG(TAG, "  Saved charge percentage: %.1f", saved_charge / 10.0f);
+  }
+  if (!this->charge_map_.empty()) {
+    ESP_LOGCONFIG(TAG, "  Charge map:");
+    for (const auto &pair : this->charge_map_) {
+      ESP_LOGCONFIG(TAG, "    %.1f V: %d%%", pair.first, pair.second);
+    }
+  }
+  if (!this->discharge_map_.empty()) {
+    ESP_LOGCONFIG(TAG, "  Discharge map:");
+    for (const auto &pair : this->discharge_map_) {
+      ESP_LOGCONFIG(TAG, "    %.1f V: %d%%", pair.first, pair.second);
+    }
   }
 }
 }  // namespace battery_gauge
