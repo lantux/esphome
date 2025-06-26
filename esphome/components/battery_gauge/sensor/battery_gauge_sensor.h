@@ -21,6 +21,7 @@ class BatteryGaugeSensor : public sensor::Sensor, public Component {
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
   void set_initial_state(float initial_state) { initial_state_ = initial_state; }
+  void reset_soc_from_voltage();
 
  protected:
   void publish_(float new_state);
@@ -29,10 +30,10 @@ class BatteryGaugeSensor : public sensor::Sensor, public Component {
   float capacity_;
   void on_current_(float value);
   void on_voltage_(float value);
-  float charge_state_{};           // charge state in Ah
-  unsigned charge_percentage_{0};  // charge percentage * 10
-  std::map<float, int> discharge_map_;
-  std::map<float, int> charge_map_;
+  float charge_state_{};                // charge state in Ah
+  unsigned charge_percentage_{0};       // charge percentage * 10
+  std::map<float, int> discharge_map_;  // map of volts to charge percentage * 10
+  std::map<float, int> charge_map_;     // map of volts to charge percentage * 10
   float initial_state_{0};
   uint32_t last_time_{0};
   float last_voltage_{NAN};

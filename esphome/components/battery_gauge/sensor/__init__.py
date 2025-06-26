@@ -82,6 +82,9 @@ async def to_code(config):
     charge_map.sort(key=lambda x: x[0])
     maps = [list(x[1]) for x in itertools.groupby(charge_map, key=lambda x: x[1] < 0.5)]
     maps[0].sort(key=lambda x: x[0], reverse=True)
+    maps[0] = [(x[0], int(x[1] * 1000)) for x in maps[0]]
+    maps[1].sort(key=lambda x: x[0], reverse=False)
+    maps[1] = [(x[0], int(x[1] * 1000)) for x in maps[1]]
     var = await sensor.new_sensor(
         config, voltage_source, current_source, capacity, maps[0], maps[1]
     )
