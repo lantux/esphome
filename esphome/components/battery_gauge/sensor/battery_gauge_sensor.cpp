@@ -40,28 +40,27 @@ void BatteryGaugeSensor::publish_(float new_state) {
   }
 }
 void BatteryGaugeSensor::on_voltage_(float value) {
-  if (value > this->last_voltage_) {
-    for (auto &pair : this->charge_map_) {
-      if (value >= pair.first && this->last_voltage_ < pair.first) {
-        auto new_state = pair.second * this->capacity_ / 100.0f;  // convert to Ah
-        ESP_LOGD(TAG, "Charging: Voltage %f, charge percentage: %u", value, this->charge_percentage_);
-        this->publish_(new_state);
-        break;
-      }
+  for (auto &pair : this->charge_map_) {
+    if (value >= pair.first && (this->last_voltage_ < pair.first || this->charge_percentage_ < pair.second * 10) {
+      auto new_state = pair.second * this->capacity_ / 100.0f;  // convert to Ah
+      this->publish_(new_state);
+      ESP_LOGD(TAG, "Charging: Voltage %f, charge percentage: %.1f", value, this->charge_percentage_ / 10.0);
+      this->last_voltage_ = value;
+      return;
     }
-  } else if (value < this->last_voltage_) {
-    // If the voltage is decreasing, we check the discharge map
-    for (auto &pair : this->discharge_map_) {
-      if (value <= pair.first && this->last_voltage_ > pair.first) {
-        auto new_state = pair.second * this->capacity_ / 100.0f;  // convert to Ah
-        ESP_LOGD(TAG, "Discharging: Voltage %f, charge percentage: %u", value, this->charge_percentage_);
-        this->publish_(new_state);
-        break;
-      }
+  }
+  // If the voltage is decreasing, we check the discharge map
+  for (auto &pair : this->discharge_map_) {
+    if (value <= pair.first && (this->last_voltage_ > pair.first || this->charge_percentage_ > pair.second * 10) {
+      auto new_state = pair.second * this->capacity_ / 100.0f;  // convert to Ah
+      this->publish_(new_state);
+      ESP_LOGD(TAG, "Discharging: Voltage %f, charge percentage: %.1f", value, this->charge_percentage_ / 10.0);
+      this->last_voltage_ = value;
+      return;
     }
-    this->last_voltage_ = value;
   }
 }
+
 void BatteryGaugeSensor::setup() {
   this->current_source_->add_on_state_callback([this](float value) { this->on_current_(value); });
   this->voltage_source_->add_on_state_callback([this](float value) { this->on_voltage_(value); });
