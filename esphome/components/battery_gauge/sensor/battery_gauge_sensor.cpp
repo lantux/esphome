@@ -43,13 +43,15 @@ void BatteryGaugeSensor::publish_(float new_state) {
  * Using voltage thresholds to adjust the charge state. This resynchronises
  */
 void BatteryGaugeSensor::on_voltage_(float value) {
-  // don't use voltage to adjust when under heavy charge or discharge
-  if (std::abs(this->last_current_) > this->capacity_ / 5)
+  // don't use voltage to adjust when under significant charge or discharge
+  if (std::abs(this->last_current_) > this->capacity_ / 40)
     return;
   if (!std::isfinite(this->last_voltage_)) {
     this->last_voltage_ = value;
     return;
   }
+  // smooth the voltage with an EMA filter
+  this->last_voltage_ = value / 10.0f + this->last_voltage_ * 0.9f;
   // if the voltage crossed a threshold, set the charge state according to that data point
   for (auto &pair : this->charge_map_) {
     if (value >= pair.first && this->last_voltage_ < pair.first) {
