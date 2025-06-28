@@ -1,10 +1,7 @@
-import itertools
-
 import esphome.codegen as cg
 from esphome.components import sensor
 import esphome.config_validation as cv
 from esphome.const import (
-    CONF_CALIBRATION,
     CONF_CAPACITY,
     CONF_INITIAL_STATE,
     CONF_VOLTAGE,
@@ -20,8 +17,9 @@ BatteryGaugeSensor = battery_gauge_ns.class_(
 )
 
 CONF_CURRENT_SOURCE = "current_source"
-CONF_VOLTAGE_SOURCE = "voltage_source"
+CONF_MAX_CHARGE_VOLTAGE = "max_charge_voltage"
 CONF_PERCENTAGE = "percentage"
+CONF_VOLTAGE_SOURCE = "voltage_source"
 
 
 def capacity(value):
@@ -59,10 +57,7 @@ CONFIG_SCHEMA = (
             cv.Required(CONF_VOLTAGE_SOURCE): cv.use_id(sensor.Sensor),
             cv.Required(CONF_CURRENT_SOURCE): cv.use_id(sensor.Sensor),
             cv.Required(CONF_CAPACITY): capacity,
-            cv.Required(CONF_CALIBRATION): cv.All(
-                cv.ensure_list(shorthand),
-                cv.Length(min=2, max=10),
-            ),
+            cv.Required(CONF_MAX_CHARGE_VOLTAGE): cv.voltage,
             cv.Optional(CONF_INITIAL_STATE): cv.All(
                 cv.percentage, cv.Range(min=0, max=100)
             ),
@@ -76,17 +71,12 @@ async def to_code(config):
     voltage_source = await cg.get_variable(config[CONF_VOLTAGE_SOURCE])
     current_source = await cg.get_variable(config[CONF_CURRENT_SOURCE])
     capacity = config[CONF_CAPACITY]
-    charge_map = [
-        (x[CONF_VOLTAGE], x[CONF_PERCENTAGE]) for x in config[CONF_CALIBRATION]
-    ]
-    charge_map.sort(key=lambda x: x[0])
-    maps = [list(x[1]) for x in itertools.groupby(charge_map, key=lambda x: x[1] < 0.5)]
-    maps[0].sort(key=lambda x: x[0], reverse=True)
-    maps[0] = [(x[0], int(x[1] * 1000)) for x in maps[0]]
-    maps[1].sort(key=lambda x: x[0], reverse=False)
-    maps[1] = [(x[0], int(x[1] * 1000)) for x in maps[1]]
     var = await sensor.new_sensor(
-        config, voltage_source, current_source, capacity, maps[0], maps[1]
+        config,
+        voltage_source,
+        current_source,
+        capacity,
+        config[CONF_MAX_CHARGE_VOLTAGE],
     )
     if initial_state := config.get(CONF_INITIAL_STATE):
         cg.add(var.set_initial_state(initial_state))
