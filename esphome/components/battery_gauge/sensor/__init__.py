@@ -22,12 +22,6 @@ CONF_PERCENTAGE = "percentage"
 CONF_VOLTAGE_SOURCE = "voltage_source"
 
 
-def capacity(value):
-    if isinstance(value, str) and value.lower().endswith("ah"):
-        value = value[:-2]
-    return cv.float_(value)
-
-
 def shorthand(value):
     if isinstance(value, dict) and len(value) == 1:
         voltage = cv.float_(float(list(value.keys())[0]))
@@ -44,6 +38,8 @@ def shorthand(value):
     )(value)
 
 
+capacity = cv.float_with_unit("capacity", "(ah|AH)?")
+
 CONFIG_SCHEMA = (
     sensor.sensor_schema(
         BatteryGaugeSensor,
@@ -59,7 +55,7 @@ CONFIG_SCHEMA = (
             cv.Required(CONF_CAPACITY): capacity,
             cv.Required(CONF_MAX_CHARGE_VOLTAGE): cv.voltage,
             cv.Optional(CONF_INITIAL_STATE): cv.All(
-                cv.percentage, cv.Range(min=0, max=100)
+                cv.percentage, cv.Range(min=0, max=1.0)
             ),
         }
     )
