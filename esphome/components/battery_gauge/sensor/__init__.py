@@ -38,7 +38,7 @@ def shorthand(value):
     )(value)
 
 
-capacity = cv.float_with_unit("capacity", "(ah|AH)?")
+capacity = cv.float_with_unit("capacity", "(ah|AH|Ah|aH)?")
 
 CONFIG_SCHEMA = (
     sensor.sensor_schema(
