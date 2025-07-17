@@ -189,7 +189,7 @@ def get_download_types(storage_json):
     ]
 
 
-def only_on_variant(*, supported=None, unsupported=None):
+def only_on_variant(*, supported=None, unsupported=None, msg_prefix="This feature"):
     """Config validator for features only available on some ESP32 variants."""
     if supported is not None and not isinstance(supported, list):
         supported = [supported]
@@ -200,11 +200,11 @@ def only_on_variant(*, supported=None, unsupported=None):
         variant = get_esp32_variant()
         if supported is not None and variant not in supported:
             raise cv.Invalid(
-                f"This feature is only available on {', '.join(supported)}"
+                f"{msg_prefix} is only available on {', '.join(supported)}"
             )
         if unsupported is not None and variant in unsupported:
             raise cv.Invalid(
-                f"This feature is not available on {', '.join(unsupported)}"
+                f"{msg_prefix} is not available on {', '.join(unsupported)}"
             )
         return obj
 
@@ -341,6 +341,7 @@ SUPPORTED_PLATFORMIO_ESP_IDF_5X = [
 # List based on https://github.com/pioarduino/esp-idf/releases
 SUPPORTED_PIOARDUINO_ESP_IDF_5X = [
     cv.Version(5, 5, 0),
+    cv.Version(5, 4, 2),
     cv.Version(5, 4, 1),
     cv.Version(5, 4, 0),
     cv.Version(5, 3, 3),
@@ -410,8 +411,8 @@ def _esp_idf_check_versions(value):
         version = cv.Version.parse(cv.version_number(value[CONF_VERSION]))
         source = value.get(CONF_SOURCE, None)
 
-    if version < cv.Version(4, 0, 0):
-        raise cv.Invalid("Only ESP-IDF 4.0+ is supported.")
+    if version < cv.Version(5, 0, 0):
+        raise cv.Invalid("Only ESP-IDF 5.0+ is supported.")
 
     # flag this for later *before* we set value[CONF_PLATFORM_VERSION] below
     has_platform_ver = CONF_PLATFORM_VERSION in value
@@ -421,20 +422,15 @@ def _esp_idf_check_versions(value):
     )
 
     if (
-        (is_platformio := _platform_is_platformio(value[CONF_PLATFORM_VERSION]))
-        and version.major >= 5
-        and version not in SUPPORTED_PLATFORMIO_ESP_IDF_5X
-    ):
+        is_platformio := _platform_is_platformio(value[CONF_PLATFORM_VERSION])
+    ) and version not in SUPPORTED_PLATFORMIO_ESP_IDF_5X:
         raise cv.Invalid(
             f"ESP-IDF {str(version)} not supported by platformio/espressif32"
         )
 
     if (
-        version.major < 5
-        or (
-            version in SUPPORTED_PLATFORMIO_ESP_IDF_5X
-            and version not in SUPPORTED_PIOARDUINO_ESP_IDF_5X
-        )
+        version in SUPPORTED_PLATFORMIO_ESP_IDF_5X
+        and version not in SUPPORTED_PIOARDUINO_ESP_IDF_5X
     ) and not has_platform_ver:
         raise cv.Invalid(
             f"ESP-IDF {value[CONF_VERSION]} may be supported by platformio/espressif32; please specify '{CONF_PLATFORM_VERSION}'"
@@ -711,6 +707,7 @@ async def to_code(config):
     cg.add_define("ESPHOME_VARIANT", VARIANT_FRIENDLY[config[CONF_VARIANT]])
 
     cg.add_platformio_option("lib_ldf_mode", "off")
+    cg.add_platformio_option("lib_compat_mode", "strict")
 
     framework_ver: cv.Version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
 
@@ -800,14 +797,9 @@ async def to_code(config):
 
         if advanced.get(CONF_IGNORE_EFUSE_MAC_CRC):
             add_idf_sdkconfig_option("CONFIG_ESP_MAC_IGNORE_MAC_CRC_ERROR", True)
-            if (framework_ver.major, framework_ver.minor) >= (4, 4):
-                add_idf_sdkconfig_option(
-                    "CONFIG_ESP_PHY_CALIBRATION_AND_DATA_STORAGE", False
-                )
-            else:
-                add_idf_sdkconfig_option(
-                    "CONFIG_ESP32_PHY_CALIBRATION_AND_DATA_STORAGE", False
-                )
+            add_idf_sdkconfig_option(
+                "CONFIG_ESP_PHY_CALIBRATION_AND_DATA_STORAGE", False
+            )
         if advanced.get(CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES):
             _LOGGER.warning(
                 "Using experimental features in ESP-IDF may result in unexpected failures."
