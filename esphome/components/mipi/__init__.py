@@ -225,7 +225,7 @@ class DriverChip:
     def __init__(
         self,
         name: str,
-        initsequence=None,
+        initsequence=list(),
         **defaults,
     ):
         name = name.upper()
