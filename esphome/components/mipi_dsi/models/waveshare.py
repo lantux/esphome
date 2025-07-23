@@ -8,13 +8,16 @@ DriverChip(
     hsync_back_porch=20,
     hsync_pulse_width=20,
     hsync_front_porch=40,
-    vsync_back_porch=12,
+    vsync_back_porch=8,
     vsync_pulse_width=4,
-    vsync_front_porch=30,
+    vsync_front_porch=20,
     pclk_frequency="80MHz",
     lane_bit_rate="1.5Gbps",
     swap_xy=cv.UNDEFINED,
     color_order="RGB",
+    color_depth="16bit"
+    pixel_mode="16bit"
+    rotation=90
     initsequence=[
         (0xE0, 0x00),  # select userpage
         (0xE1, 0x93),
